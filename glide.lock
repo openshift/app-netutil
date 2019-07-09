@@ -1,0 +1,81 @@
+hash: 2032406485b160b8c5138cb8b1a9d9a79dbae6cdc8c6dded7d1ff15ddb3dd737
+updated: 2019-06-21T05:10:54.934307292-04:00
+imports:
+- name: github.com/containernetworking/cni
+  version: dc953e2fd91f9bc624b03cf9ea3706796bfee920
+  subpackages:
+  - pkg/types
+- name: github.com/golang/glog
+  version: 23def4e6c14b4da8ac2ed8007337bc5eb5007998
+- name: github.com/golang/protobuf
+  version: b285ee9cfc6c881bb20c0d8dc73370ea9b9ec90f
+  subpackages:
+  - proto
+  - ptypes
+  - ptypes/any
+  - ptypes/duration
+  - ptypes/timestamp
+- name: github.com/zshi-redhat/kube-app-netutil
+  version: 6efc1c07f24d936f219bc660c24288a55eaec3d1
+  subpackages:
+  - apis/v1alpha
+- name: golang.org/x/net
+  version: 3b0461eec859c4b73bb64fdc8285971fd33e3938
+  subpackages:
+  - context
+  - http/httpguts
+  - http2
+  - http2/hpack
+  - idna
+  - internal/timeseries
+  - trace
+- name: golang.org/x/sys
+  version: bf70e4678053e8a9f269f32f9b29464e4a03a1e6
+  subpackages:
+  - unix
+- name: golang.org/x/text
+  version: 342b2e1fbaa52c93f31447ad2c6abc048c63e475
+  subpackages:
+  - secure/bidirule
+  - transform
+  - unicode/bidi
+  - unicode/norm
+- name: google.golang.org/genproto
+  version: 6af8c5fc6601ab6b41cd32742a65ce2f5bd9db57
+  subpackages:
+  - googleapis/rpc/status
+- name: google.golang.org/grpc
+  version: 501c41df7f472c740d0674ff27122f3f48c80ce7
+  subpackages:
+  - balancer
+  - balancer/base
+  - balancer/roundrobin
+  - binarylog/grpc_binarylog_v1
+  - codes
+  - connectivity
+  - credentials
+  - credentials/internal
+  - encoding
+  - encoding/proto
+  - grpclog
+  - internal
+  - internal/backoff
+  - internal/balancerload
+  - internal/binarylog
+  - internal/channelz
+  - internal/envconfig
+  - internal/grpcrand
+  - internal/grpcsync
+  - internal/syscall
+  - internal/transport
+  - keepalive
+  - metadata
+  - naming
+  - peer
+  - resolver
+  - resolver/dns
+  - resolver/passthrough
+  - stats
+  - status
+  - tap
+testImports: []
