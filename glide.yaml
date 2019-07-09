@@ -1,0 +1,8 @@
+package: .
+import:
+- package: github.com/golang/glog
+- package: golang.org/x/net
+  subpackages:
+  - context
+- package: google.golang.org/grpc
+  version: ^1.21.1

@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package v1alpha;
+
+service NetUtil {
+  rpc GetCPUInfo(CPURequest) returns (CPUResponse) {}
+  rpc GetEnv(EnvRequest) returns (EnvResponse) {}
+  rpc GetNetworkStatus(NetworkStatusRequest) returns (NetworkStatusResponse) {}
+  rpc GetResource(ResourceRequest) returns (ResourceResponse) {}
+}
+
+message Empty {
+}
+
+message CPURequest {
+	string pid = 1;
+}
+
+message CPUResponse {
+	string	cpuset = 1;
+}
+
+message EnvRequest {
+	string pid = 1;
+	string key = 2;
+}
+
+message EnvResponse {
+	map<string, string> envs = 1;
+}
+
+message NetworkStatusRequest {
+	string pid = 1;
+	string int = 2;
+}
+
+message NetworkStatusResponse {
+	repeated NetworkStatus status = 1;
+}
+
+message NetworkStatus {
+	string name = 1;
+	string interface = 2;
+	repeated string ips = 4;
+	string mac = 3;
+}
+
+message ResourceRequest {
+	string pid = 1;
+}
+
+message ResourceResponse {
+	repeated Device devices = 1;
+}
+
+message Device {
+	string ID = 1;
+	string resourceName = 2;
+}
