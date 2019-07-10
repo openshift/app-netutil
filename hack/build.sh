@@ -1,7 +1,7 @@
 set -e
 
-ORG_PATH="github.com/zshi-redhat"
-REPO_PATH="${ORG_PATH}/kube-app-netutil"
+ORG_PATH="github.com/openshift"
+REPO_PATH="${ORG_PATH}/app-netutil"
 
 if [ ! -h gopath/src/${REPO_PATH} ]; then
         mkdir -p gopath/src/${ORG_PATH}
@@ -12,5 +12,4 @@ export GOBIN=${PWD}/bin
 export GOPATH=${PWD}/gopath
 export CGO_ENABLED=0
 
-go install "$@" ${REPO_PATH}/server
-go install "$@" ${REPO_PATH}/client
+go install "$@" ${REPO_PATH}/samples

@@ -1,8 +1,8 @@
 FROM centos/tools
 
-ADD . /usr/src/kube-app-netutil
+ADD . /usr/src/app-netutil
 
-WORKDIR /usr/src/kube-app-netutil
+WORKDIR /usr/src/app-netutil
 
 ENV INSTALL_PKGS "golang"
 RUN rpm --import https://mirror.go-repo.io/centos/RPM-GPG-KEY-GO-REPO && \
@@ -13,11 +13,10 @@ RUN rpm --import https://mirror.go-repo.io/centos/RPM-GPG-KEY-GO-REPO && \
     make clean && \
     make
 
-RUN cp /usr/src/kube-app-netutil/bin/server /usr/bin
-RUN cp /usr/src/kube-app-netutil/bin/client /usr/bin
+RUN cp /usr/src/app-netutil/bin/samples /usr/bin/app
 
 WORKDIR /
 
-LABEL io.k8s.display-name="Kube application netutil"
+LABEL io.k8s.display-name="Sample application using netutil"
 
-CMD ["/usr/bin/server"]
+CMD ["/usr/bin/app", "--alsologtostderr"]

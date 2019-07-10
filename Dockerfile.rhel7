@@ -8,11 +8,10 @@ RUN make clean && make build
 
 FROM registry.svc.ci.openshift.org/ocp/4.0:base
 
-COPY --from=builder /usr/src/app-netutil/bin/server /usr/bin/
-COPY --from=builder /usr/src/app-netutil/bin/client /usr/bin/
+COPY --from=builder /usr/src/app-netutil/bin/samples /usr/bin/app
 
 WORKDIR /
 
-LABEL io.k8s.display-name="OpenShift Application Network Utility"
+LABEL io.k8s.display-name="OpenShift Application Sample using Network Utility"
 
-CMD ["/usr/bin/server"]
+CMD ["/usr/bin/app"]
