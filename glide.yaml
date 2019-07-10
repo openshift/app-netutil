@@ -1,8 +1,7 @@
 package: .
 import:
-- package: github.com/golang/glog
-- package: golang.org/x/net
+- package: github.com/containernetworking/cni
+  version: ^0.7.1
   subpackages:
-  - context
-- package: google.golang.org/grpc
-  version: ^1.21.1
+  - pkg/types
+- package: github.com/golang/glog
