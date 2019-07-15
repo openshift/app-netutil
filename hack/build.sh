@@ -12,4 +12,4 @@ export GOBIN=${PWD}/bin
 export GOPATH=${PWD}/gopath
 export CGO_ENABLED=0
 
-go install "$@" ${REPO_PATH}/samples
+go install "$@" ${REPO_PATH}/samples/go_app
