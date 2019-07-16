@@ -43,7 +43,8 @@ $ ./bin/c_sample
 If the application is not actually running in a container where annotations have been
 exposed, run the following to copy a sample annotation file onto the system:
 ```
-$ sudo cp samples/c_app/annotations /etc/poding/.
+$ sudo mkdir -p /etc/podinfo/
+$ sudo cp samples/c_app/annotations /etc/podinfo/.
 ```
 
 3. Clean up:

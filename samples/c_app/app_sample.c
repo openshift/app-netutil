@@ -3,11 +3,14 @@
 #include <string.h>
 #include "libnetutil_api.h"
 
+#define NETUTIL_NUM_DEFAULT_ENVS  200
+
 int main() {
 	struct CPUResponse cpuRsp;
 	struct EnvResponse envRsp;
 	struct NetworkStatusResponse networkStatusRsp;
 	int i, j;
+	int num_envs;
 
 	printf("Starting sample C application.\n");
 
@@ -30,19 +33,29 @@ int main() {
 	// Example of a C call to GO that returns a string.
 	//
 	// Note1: Calling C function must free the string.
+	// Note2: Instead of defining the input struct with a fixed
+	//   array of entries, the C Program allocates the array
+	//   dynamically. For now hardcoded. Later, could call GO to get
+	//   the number of entries. 
 	//
 	printf("Call NetUtil GetEnv():\n");
-	memset(&envRsp, 0, sizeof(envRsp));
-	GetEnv(&envRsp);
-	for (i = 0; i < NETUTIL_NUM_ENVS; i++) {
-		if (envRsp.Envs[i].Index) {
-			printf("  envRsp.Envs[%d].Index = %s\n", i, envRsp.Envs[i].Index);
-			free(envRsp.Envs[i].Index);
+	num_envs = 100;
+	envRsp.netutil_num_envs = num_envs;
+	envRsp.pEnvs = malloc(num_envs * sizeof(struct EnvData));
+	if (envRsp.pEnvs) {
+		memset(envRsp.pEnvs, 0, (num_envs * sizeof(struct EnvData)));
+		GetEnv(&envRsp);
+		for (i = 0; i < num_envs; i++) {
+			if (envRsp.pEnvs[i].Index) {
+				printf("  envRsp.pEnvs[%d].Index = %s\n", i, envRsp.pEnvs[i].Index);
+				free(envRsp.pEnvs[i].Index);
+			}
+			if (envRsp.pEnvs[i].Value) {
+				printf("  envRsp.pEnvs[%d].Value = %s\n", i, envRsp.pEnvs[i].Value);
+				free(envRsp.pEnvs[i].Value);
+			}
 		}
-		if (envRsp.Envs[i].Value) {
-			printf("  envRsp.Envs[%d].Value = %s\n", i, envRsp.Envs[i].Value);
-			free(envRsp.Envs[i].Value);
-		}
+		free(envRsp.pEnvs);
 	}
 
 
@@ -84,4 +97,6 @@ int main() {
 			free(networkStatusRsp.Status[i].Mac);
 		}
 	}
+
+	return 0;
 }

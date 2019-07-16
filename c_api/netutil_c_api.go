@@ -9,14 +9,15 @@ struct CPUResponse {
 };
 
 
-#define NETUTIL_NUM_ENVS  200
-
 struct EnvData {
     char*    Index;
     char*    Value;
 };
+// *pEnvs is an array of 'struct EnvData' that is allocated
+// from the C program.
 struct EnvResponse {
-    struct EnvData  Envs[NETUTIL_NUM_ENVS];
+	int             netutil_num_envs;
+	struct EnvData *pEnvs;
 };
 
 
@@ -34,6 +35,7 @@ struct NetworkStatusResponse {
 };
 */
 import "C"
+import "unsafe"
 
 import (
 	"flag"
@@ -45,7 +47,6 @@ import (
 
 const (
 	cpusetPath = "/sys/fs/cgroup/cpuset/cpuset.cpus"
-	netutil_num_envs = 200
 	netutil_num_ips = 10
 	netutil_num_networkstatus = 10
 )
@@ -63,15 +64,22 @@ func GetCPUInfo(c_cpuResp *C.struct_CPUResponse) {
 
 //export GetEnv
 func GetEnv(c_envResp *C.struct_EnvResponse) {
+	var j _Ctype_int
+
 	flag.Parse()
 	envRsp, err := netlib.GetEnv()
 
 	if err == nil {
-		j := 0
+		j = 0
+
+		// Map the input pointer to array of structures, c_envResp.pEnvs, to
+		// a slice of the structures, c_envResp_pEnvs. Then the slice can be
+		// indexed.
+		c_envResp_pEnvs := (*[1 << 30]C.struct_EnvData)(unsafe.Pointer(c_envResp.pEnvs))[:c_envResp.netutil_num_envs:c_envResp.netutil_num_envs]
 		for i, env := range envRsp.Envs {
-			if j < netutil_num_envs {
-				c_envResp.Envs[j].Index = C.CString(i)
-				c_envResp.Envs[j].Value = C.CString(env)
+			if j < c_envResp.netutil_num_envs {
+				c_envResp_pEnvs[j].Index = C.CString(i)
+				c_envResp_pEnvs[j].Value = C.CString(env)
 				j++
 			} else {
 				glog.Errorf("EnvResponse struct not sized properly. At %d ENV Variables.", j)
