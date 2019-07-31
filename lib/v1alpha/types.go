@@ -4,6 +4,11 @@ import (
 	"github.com/containernetworking/cni/pkg/types"
 )
 
+const (
+	INTERFACE_TYPE_PCI = "pci"
+	INTERFACE_TYPE_VHOST = "vhost"
+)
+
 type CPUResponse struct {
 	CPUSet	string	`json:"cpuset,omitempty"`
 }
@@ -13,6 +18,15 @@ type EnvResponse struct {
 }
 
 type ResourceResponse struct {
+}
+
+type NetworkInterfaceResponse struct {
+	Interface	[]*NetworkInterface
+}
+
+type NetworkInterface struct {
+	Type	string		`json:"type,omitempty"`
+	ID	string		`json:"id,omitempty"`
 }
 
 type NetworkStatusResponse struct{
