@@ -25,8 +25,19 @@ type NetworkInterfaceResponse struct {
 }
 
 type NetworkInterface struct {
+	Name	string		`json:"name,omitempty"`
 	Type	string		`json:"type,omitempty"`
-	ID	string		`json:"id,omitempty"`
+	Sriov	*SriovData	`json:"sriov,omitempty"`
+	Vhost	*VhostData	`json:"vhost,omitempty"`
+}
+
+type SriovData struct {
+	PCIAddress	string	`json:"pciAddress,omitempty"`
+}
+
+type VhostData struct {
+	SocketFile	string	`json:"socketFile,omitempty"`
+	Master		bool	`json:"master,omitempty"`
 }
 
 type NetworkStatusResponse struct{

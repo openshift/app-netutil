@@ -1,6 +1,7 @@
 package main
 /*
 #include <stdint.h>
+#include <stdbool.h>
 
 // Mapped from app-netutil.lib/v1alpha/types.go
 
@@ -34,9 +35,20 @@ struct NetworkStatusResponse {
 	struct NetworkStatus Status[NETUTIL_NUM_NETWORKSTATUS];
 };
 
+struct SriovData {
+	char*	PCIAddress;
+};
+
+struct VhostData {
+	char*	SocketFile;
+	bool	Master;
+};
+
 struct NetworkInterface {
+	char*	Name;
 	char*	Type;
-	char*	ID;
+	struct	SriovData	Sriov;
+	struct	VhostData	Vhost;
 };
 struct NetworkInterfaceResponse {
 	struct NetworkInterface	Interface[NETUTIL_NUM_NETWORKINTERFACE];
@@ -59,6 +71,12 @@ const (
 	netutil_num_ips = 10
 	netutil_num_networkstatus = 10
 	netutil_num_networkinterface = 10
+
+	// Interface type
+	NETUTIL_INTERFACE_TYPE_PCI = "pci"
+	NETUTIL_INTERFACE_TYPE_VHOST = "vhost"
+
+	// Errno
 	NETUTIL_ERRNO_SUCCESS = 0
 	NETUTIL_ERRNO_FAIL = 1
 	NETUTIL_ERRNO_SIZE_ERROR = 2
@@ -74,6 +92,7 @@ func GetCPUInfo(c_cpuResp *C.struct_CPUResponse) int64 {
 		c_cpuResp.CPUSet = C.CString(cpuRsp.CPUSet)
 		return NETUTIL_ERRNO_SUCCESS
 	}
+	glog.Errorf("netlib.GetCPUInfo() err: %+v", err)
 	return NETUTIL_ERRNO_FAIL
 }
 
@@ -103,6 +122,7 @@ func GetEnv(c_envResp *C.struct_EnvResponse) int64 {
 		}
 		return NETUTIL_ERRNO_SUCCESS
 	}
+	glog.Errorf("netlib.GetEnv() err: %+v", err)
 	return NETUTIL_ERRNO_FAIL
 }
 
@@ -122,17 +142,20 @@ func GetNetworkStatus(c_networkResp *C.struct_NetworkStatusResponse) int64 {
 					if j < netutil_num_ips {
 						c_networkResp.Status[i].IPs[j] = C.CString(ipaddr)
 					} else {
-						glog.Errorf("NetworkStatusResponse IPs struct not sized properly. At %d IPs for Interface %d.", j, i)
+						glog.Errorf("NetworkStatusResponse IPs struct" +
+							"not sized properly. At %d IPs for Interface %d.", j, i)
 						return NETUTIL_ERRNO_SIZE_ERROR
 					}
 				}
 			} else {
-				glog.Errorf("NetworkStatusResponse struct not sized properly. At %d Interfaces.", i)
+				glog.Errorf("NetworkStatusResponse struct not sized properly." +
+					"At %d Interfaces.", i)
 				return NETUTIL_ERRNO_SIZE_ERROR
 			}
 		}
 		return NETUTIL_ERRNO_SUCCESS
 	}
+	glog.Errorf("netlib.GetNetworkStatus() err: %+v", err)
 	return NETUTIL_ERRNO_FAIL
 }
 
@@ -144,15 +167,37 @@ func GetNetworkInterface(c_intType *C.char, c_netIntResp *C.struct_NetworkInterf
 	if err == nil {
 		for i, iface := range intRsp.Interface {
 			if i < netutil_num_networkinterface {
+				c_netIntResp.Interface[i].Name = C.CString(iface.Name)
 				c_netIntResp.Interface[i].Type = C.CString(iface.Type)
-				c_netIntResp.Interface[i].ID = C.CString(iface.ID)
+				switch C.GoString(c_intType) {
+
+				case NETUTIL_INTERFACE_TYPE_PCI:
+					c_netIntResp.Interface[i].Sriov.PCIAddress =
+						C.CString(iface.Sriov.PCIAddress)
+
+				case NETUTIL_INTERFACE_TYPE_VHOST:
+					c_netIntResp.Interface[i].Vhost.SocketFile =
+						C.CString(iface.Vhost.SocketFile)
+					c_netIntResp.Interface[i].Vhost.Master =
+						(iface.Vhost.Master != false)
+
+				case "":
+					c_netIntResp.Interface[i].Sriov.PCIAddress =
+						C.CString(iface.Sriov.PCIAddress)
+					c_netIntResp.Interface[i].Vhost.SocketFile =
+						C.CString(iface.Vhost.SocketFile)
+					c_netIntResp.Interface[i].Vhost.Master =
+						(iface.Vhost.Master != false)
+				}
 			} else {
-				glog.Errorf("NetworkInterfaceResponse struct not sized properly. At %d Interfaces.", i)
+				glog.Errorf("NetworkInterfaceResponse struct not sized properly." +
+					"At %d Interfaces.", i)
 				return NETUTIL_ERRNO_SIZE_ERROR
 			}
 		}
 		return NETUTIL_ERRNO_SUCCESS
 	}
+	glog.Errorf("netlib.GetNetworkInterface() err: %+v", err)
 	return NETUTIL_ERRNO_FAIL
 }
 
