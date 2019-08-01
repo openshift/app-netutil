@@ -3,6 +3,7 @@ package apputil
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"os"
 	"strings"
 
@@ -13,6 +14,38 @@ const (
 	netStatusPath = "/etc/podinfo/annotations"
 	netStatusKey = "k8s.v1.cni.cncf.io/networks-status"
 )
+
+func GetNetworkInterface(intType string) (*NetworkInterfaceResponse, error) {
+	glog.Infof("getting network interfaces")
+	response := &NetworkInterfaceResponse{}
+
+	switch intType {
+	case INTERFACE_TYPE_PCI:
+		envResponse, err := GetEnv()
+		if err != nil {
+			glog.Errorf("Error calling GetEnv from GetInterface: %v", err)
+			return nil, err
+		}
+		for k, v := range envResponse.Envs {
+			if strings.HasPrefix(k, "PCIDEVICE") {
+				valueParts := strings.Split(string(v), ",")
+				for _, id := range valueParts {
+					response.Interface = append(response.Interface, &NetworkInterface{
+						Type: INTERFACE_TYPE_PCI,
+						Sriov: &SriovData{PCIAddress: id},
+					})
+				}
+			}
+		}
+	case INTERFACE_TYPE_VHOST:
+		return nil, fmt.Errorf("Interface type 'vhost' not implemented")
+	case "":
+		return nil, fmt.Errorf("Interface type '' not implemented")
+	default:
+		return nil, fmt.Errorf("Unsupported interface type, values must be 'pci','vhost' or ''")
+	}
+	return response, nil
+}
 
 func GetNetworkStatus() (*NetworkStatusResponse, error) {
 	glog.Infof("getting network status from path: %s", netStatusPath)

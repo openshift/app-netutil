@@ -17,12 +17,14 @@ func main() {
 		cpuResponse, err := netlib.GetCPUInfo()
 		if err != nil {
 			glog.Errorf("Error calling netlib.GetCPUInfo: %v", err)
+			return
 		}
 		glog.Infof("netlib.GetCPUInfo Response: %s", cpuResponse.CPUSet)
 
 		envResponse, err := netlib.GetEnv()
 		if err != nil {
 			glog.Errorf("Error calling netlib.GetEnv: %v", err)
+			return
 		}
 		glog.Infof("netlib.GetEnv Response:")
 		for key, value := range envResponse.Envs {
@@ -32,10 +34,21 @@ func main() {
 		netResponse, err := netlib.GetNetworkStatus()
 		if err != nil {
 			glog.Errorf("Error calling netlib.GetNetworkStatus: %v", err)
+			return
 		}
 		glog.Infof("netlib.GetNetworkStatus Response:")
 		for index, s := range netResponse.Status {
 			fmt.Printf("| %-25d|: %+v\n", index, s)
+		}
+
+		intResponse, err := netlib.GetNetworkInterface("pci")
+		if err != nil {
+			glog.Errorf("Error calling netlib.GetInterfaces: %v", err)
+			return
+		}
+		glog.Infof("netlib.GetInterfaces Response:")
+		for index, iface := range intResponse.Interface {
+			fmt.Printf("| %-25d|: %+v: %+v\n", index, iface.Type, iface.Sriov.PCIAddress)
 		}
 		time.Sleep(1 * time.Minute)
 	}

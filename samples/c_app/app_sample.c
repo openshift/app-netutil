@@ -9,8 +9,11 @@ int main() {
 	struct CPUResponse cpuRsp;
 	struct EnvResponse envRsp;
 	struct NetworkStatusResponse networkStatusRsp;
+	struct NetworkInterfaceResponse networkInterfaceRsp;
 	int i, j;
 	int num_envs;
+	int err;
+	char* int_type = "pci";
 
 	printf("Starting sample C application.\n");
 
@@ -22,7 +25,11 @@ int main() {
 	//
 	printf("Call NetUtil GetCPUInfo():\n");
 	memset(&cpuRsp, 0, sizeof(cpuRsp));
-	GetCPUInfo(&cpuRsp);
+	err = GetCPUInfo(&cpuRsp);
+	if (err) {
+		printf("Couldn't get CPU info, err code: %d\n", err);
+		return err;
+	}
 	if (cpuRsp.CPUSet) {
 		printf("  cpuRsp.CPUSet = %s\n", cpuRsp.CPUSet);
 		free(cpuRsp.CPUSet);
@@ -44,7 +51,11 @@ int main() {
 	envRsp.pEnvs = malloc(num_envs * sizeof(struct EnvData));
 	if (envRsp.pEnvs) {
 		memset(envRsp.pEnvs, 0, (num_envs * sizeof(struct EnvData)));
-		GetEnv(&envRsp);
+		err = GetEnv(&envRsp);
+		if (err) {
+			printf("Couldn't get Env, err code: %d\n", err);
+			return err;
+		}
 		for (i = 0; i < num_envs; i++) {
 			if (envRsp.pEnvs[i].Index) {
 				printf("  envRsp.pEnvs[%d].Index = %s\n", i, envRsp.pEnvs[i].Index);
@@ -73,7 +84,11 @@ int main() {
 	//
 	printf("Call NetUtil GetNetworkStatus():\n");
 	memset(&networkStatusRsp, 0, sizeof(networkStatusRsp));
-	GetNetworkStatus(&networkStatusRsp);
+	err = GetNetworkStatus(&networkStatusRsp);
+	if (err) {
+		printf("Couldn't get network status, err code: %d\n", err);
+		return err;
+	}
 	for (i = 0; i < NETUTIL_NUM_NETWORKSTATUS; i++) {
 		if (networkStatusRsp.Status[i].Name) {
 			printf("  networkStatusRsp.Status[%d].Name = %s\n", i, networkStatusRsp.Status[i].Name);
@@ -95,6 +110,51 @@ int main() {
 		if (networkStatusRsp.Status[i].Mac) {
 			printf("  networkStatusRsp.Status[%d].Mac = %s\n", i, networkStatusRsp.Status[i].Mac);
 			free(networkStatusRsp.Status[i].Mac);
+		}
+	}
+
+
+	//
+	// Example of a C call to GO that returns a structure
+	// containing a slice of structures which contain strings.
+	//
+	// Note1: Calling C function must free the string.
+	// Note2: Haven't investigated slices yet. So they
+	//   defined as arrays.
+	// Note3: The GO side cannot return any allocated
+	//   data, so the data is allocated on the C side and
+	//   passed in as a pointer.
+	//
+	printf("Call NetUtil GetNetworkInterface():\n");
+	memset(&networkInterfaceRsp, 0, sizeof(networkInterfaceRsp));
+	err = GetNetworkInterface(int_type, &networkInterfaceRsp);
+	if (err) {
+		printf("Couldn't get network interface, err code: %d\n", err);
+		return err;
+	}
+	for (i = 0; i < NETUTIL_NUM_NETWORKINTERFACE; i++) {
+		if (networkInterfaceRsp.Interface[i].Type) {
+			printf("  networkInterfaceRsp.Interface[%d].Type = %s\n", i, networkInterfaceRsp.Interface[i].Type);
+			free(networkInterfaceRsp.Interface[i].Type);
+		}
+
+		if (networkInterfaceRsp.Interface[i].Name) {
+			printf("  networkInterfaceRsp.Interface[%d].Name = %s\n", i, networkInterfaceRsp.Interface[i].Name);
+			free(networkInterfaceRsp.Interface[i].Name);
+		}
+
+		if (networkInterfaceRsp.Interface[i].Sriov.PCIAddress) {
+			printf("  networkInterfaceRsp.Interface[%d].Sriov.PCIAddress = %s\n", i, networkInterfaceRsp.Interface[i].Sriov.PCIAddress);
+			free(networkInterfaceRsp.Interface[i].Sriov.PCIAddress);
+		}
+
+		if (networkInterfaceRsp.Interface[i].Vhost.SocketFile) {
+			printf("  networkInterfaceRsp.Interface[%d].Vhost.SocketFile = %s\n", i, networkInterfaceRsp.Interface[i].Vhost.SocketFile);
+			free(networkInterfaceRsp.Interface[i].Vhost.SocketFile);
+		}
+
+		if (networkInterfaceRsp.Interface[i].Vhost.Master) {
+			printf("  networkInterfaceRsp.Interface[%d].Vhost.Master = %d\n", i, networkInterfaceRsp.Interface[i].Vhost.Master);
 		}
 	}
 
