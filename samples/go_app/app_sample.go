@@ -48,7 +48,7 @@ func main() {
 		}
 		glog.Infof("netlib.GetInterfaces Response:")
 		for index, iface := range intResponse.Interface {
-			fmt.Printf("| %-25d|: %+v: %+v\n", index, iface.Type, iface.ID)
+			fmt.Printf("| %-25d|: %+v: %+v\n", index, iface.Type, iface.Sriov.PCIAddress)
 		}
 		time.Sleep(1 * time.Minute)
 	}

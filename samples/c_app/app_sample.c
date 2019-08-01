@@ -138,9 +138,23 @@ int main() {
 			free(networkInterfaceRsp.Interface[i].Type);
 		}
 
-		if (networkInterfaceRsp.Interface[i].ID) {
-			printf("  networkInterfaceRsp.Interface[%d].ID = %s\n", i, networkInterfaceRsp.Interface[i].ID);
-			free(networkInterfaceRsp.Interface[i].ID);
+		if (networkInterfaceRsp.Interface[i].Name) {
+			printf("  networkInterfaceRsp.Interface[%d].Name = %s\n", i, networkInterfaceRsp.Interface[i].Name);
+			free(networkInterfaceRsp.Interface[i].Name);
+		}
+
+		if (networkInterfaceRsp.Interface[i].Sriov.PCIAddress) {
+			printf("  networkInterfaceRsp.Interface[%d].Sriov.PCIAddress = %s\n", i, networkInterfaceRsp.Interface[i].Sriov.PCIAddress);
+			free(networkInterfaceRsp.Interface[i].Sriov.PCIAddress);
+		}
+
+		if (networkInterfaceRsp.Interface[i].Vhost.SocketFile) {
+			printf("  networkInterfaceRsp.Interface[%d].Vhost.SocketFile = %s\n", i, networkInterfaceRsp.Interface[i].Vhost.SocketFile);
+			free(networkInterfaceRsp.Interface[i].Vhost.SocketFile);
+		}
+
+		if (networkInterfaceRsp.Interface[i].Vhost.Master) {
+			printf("  networkInterfaceRsp.Interface[%d].Vhost.Master = %d\n", i, networkInterfaceRsp.Interface[i].Vhost.Master);
 		}
 	}
 

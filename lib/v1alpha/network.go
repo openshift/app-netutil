@@ -31,16 +31,16 @@ func GetNetworkInterface(intType string) (*NetworkInterfaceResponse, error) {
 				valueParts := strings.Split(string(v), ",")
 				for _, id := range valueParts {
 					response.Interface = append(response.Interface, &NetworkInterface{
-						Type: k,
-						ID: id,
+						Type: INTERFACE_TYPE_PCI,
+						Sriov: &SriovData{PCIAddress: id},
 					})
 				}
 			}
 		}
 	case INTERFACE_TYPE_VHOST:
-		glog.Infof("Not implemented")
+		return nil, fmt.Errorf("Interface type 'vhost' not implemented")
 	case "":
-		glog.Infof("Not implemented")
+		return nil, fmt.Errorf("Interface type '' not implemented")
 	default:
 		return nil, fmt.Errorf("Unsupported interface type, values must be 'pci','vhost' or ''")
 	}
