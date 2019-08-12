@@ -3,17 +3,13 @@
 #include <string.h>
 #include "libnetutil_api.h"
 
-#define NETUTIL_NUM_DEFAULT_ENVS  200
 
 int main() {
 	struct CPUResponse cpuRsp;
-	struct EnvResponse envRsp;
-	struct NetworkStatusResponse networkStatusRsp;
-	struct NetworkInterfaceResponse networkInterfaceRsp;
+	struct InterfaceResponse ifaceRsp;
 	int i, j;
-	int num_envs;
 	int err;
-	char* int_type = "pci";
+	char* int_type = "all";
 
 	printf("Starting sample C application.\n");
 
@@ -32,129 +28,106 @@ int main() {
 	}
 	if (cpuRsp.CPUSet) {
 		printf("  cpuRsp.CPUSet = %s\n", cpuRsp.CPUSet);
+
+		// Free the string
 		free(cpuRsp.CPUSet);
 	}
 
 
 	//
-	// Example of a C call to GO that returns a string.
+	// Example of a C call to GO that returns a structure
+	// containing a slice of structures which contains strings.
 	//
 	// Note1: Calling C function must free the string.
-	// Note2: Instead of defining the input struct with a fixed
+	// Note2: The GO side cannot return any allocated
+	//   data, so the data is allocated on the C side and
+	//   passed in as a pointer.
+	// Note3: Instead of defining the input struct with a fixed
 	//   array of entries, the C Program allocates the array
-	//   dynamically. For now hardcoded. Later, could call GO to get
-	//   the number of entries. 
+	//   dynamically. For now the number of entries are hardcoded.
+	//   Later, could call GO to get the number of entries. 
 	//
-	printf("Call NetUtil GetEnv():\n");
-	num_envs = 100;
-	envRsp.netutil_num_envs = num_envs;
-	envRsp.pEnvs = malloc(num_envs * sizeof(struct EnvData));
-	if (envRsp.pEnvs) {
-		memset(envRsp.pEnvs, 0, (num_envs * sizeof(struct EnvData)));
-		err = GetEnv(&envRsp);
+	printf("Call NetUtil GetInterfaces():\n");
+	ifaceRsp.numIfaceAllocated = 10;
+	ifaceRsp.numIfacePopulated = 0;
+	ifaceRsp.pIface = malloc(ifaceRsp.numIfaceAllocated * sizeof(struct InterfaceData));
+	if (ifaceRsp.pIface) {
+		memset(ifaceRsp.pIface, 0, (ifaceRsp.numIfaceAllocated * sizeof(struct InterfaceData)));
+		err = GetInterfaces(int_type, &ifaceRsp);
 		if (err) {
-			printf("Couldn't get Env, err code: %d\n", err);
+			printf("Couldn't get network interface, err code: %d\n", err);
 			return err;
 		}
-		for (i = 0; i < num_envs; i++) {
-			if (envRsp.pEnvs[i].Index) {
-				printf("  envRsp.pEnvs[%d].Index = %s\n", i, envRsp.pEnvs[i].Index);
-				free(envRsp.pEnvs[i].Index);
+		for (i = 0; i < ifaceRsp.numIfacePopulated; i++) {
+			printf("  Interface[%d]:\n", i);
+
+			printf("  ");
+			if (ifaceRsp.pIface[i].IfName) {
+				printf("  IfName=\"%s\"", ifaceRsp.pIface[i].IfName);
+				free(ifaceRsp.pIface[i].IfName);
 			}
-			if (envRsp.pEnvs[i].Value) {
-				printf("  envRsp.pEnvs[%d].Value = %s\n", i, envRsp.pEnvs[i].Value);
-				free(envRsp.pEnvs[i].Value);
+			if (ifaceRsp.pIface[i].Name) {
+				printf("  Name=\"%s\"", ifaceRsp.pIface[i].Name);
+				free(ifaceRsp.pIface[i].Name);
 			}
-		}
-		free(envRsp.pEnvs);
-	}
+			printf("  Type=%s",
+				(ifaceRsp.pIface[i].Type == NETUTIL_TYPE_KERNEL) ? "kernel" :
+				(ifaceRsp.pIface[i].Type == NETUTIL_TYPE_SRIOV) ? "SR-IOV" :
+				(ifaceRsp.pIface[i].Type == NETUTIL_TYPE_VHOST) ? "vHost" :
+				(ifaceRsp.pIface[i].Type == NETUTIL_TYPE_MEMIF) ? "memif" :
+				(ifaceRsp.pIface[i].Type == NETUTIL_TYPE_VDPA) ? "vDPA" :
+				(ifaceRsp.pIface[i].Type == NETUTIL_TYPE_UNKNOWN) ? "unknown" : "error");
+			printf("\n");
 
-
-	//
-	// Example of a C call to GO that returns a structure
-	// containing a slice of strucures which contain strings
-	// and slices of strings.
-	//
-	// Note1: Calling C function must free the string.
-	// Note2: Haven't investigated slices yet. So they
-	//   defined as arrays.
-	// Note3: The GO side cannot return any allocated
-	//   data, so the data is allocated on the C side and
-	//   passed in as a pointer.
-	//
-	printf("Call NetUtil GetNetworkStatus():\n");
-	memset(&networkStatusRsp, 0, sizeof(networkStatusRsp));
-	err = GetNetworkStatus(&networkStatusRsp);
-	if (err) {
-		printf("Couldn't get network status, err code: %d\n", err);
-		return err;
-	}
-	for (i = 0; i < NETUTIL_NUM_NETWORKSTATUS; i++) {
-		if (networkStatusRsp.Status[i].Name) {
-			printf("  networkStatusRsp.Status[%d].Name = %s\n", i, networkStatusRsp.Status[i].Name);
-			free(networkStatusRsp.Status[i].Name);
-		}
-
-		if (networkStatusRsp.Status[i].Interface) {
-			printf("  networkStatusRsp.Status[%d].Interface = %s\n", i, networkStatusRsp.Status[i].Interface);
-			free(networkStatusRsp.Status[i].Interface);
-		}
-
-		for (j = 0; j < NETUTIL_NUM_IPS; j++) {
-			if (networkStatusRsp.Status[i].IPs[j]) {
-				printf("  networkStatusRsp.Status[%d].IPs[%d] = %s\n", i, j, networkStatusRsp.Status[i].IPs[j]);
-				free(networkStatusRsp.Status[i].IPs[j]);
+			switch (ifaceRsp.pIface[i].Type) {
+				case NETUTIL_TYPE_SRIOV:
+					printf("  ");
+					if (ifaceRsp.pIface[i].Sriov.PCIAddress) {
+						printf("  PCIAddress=%s", ifaceRsp.pIface[i].Sriov.PCIAddress);
+						free(ifaceRsp.pIface[i].Sriov.PCIAddress);
+					}
+					printf("\n");
+					break;
+				case NETUTIL_TYPE_VHOST:
+					printf("  ");
+					printf("  Mode=%s",
+						(ifaceRsp.pIface[i].Vhost.Mode == NETUTIL_VHOST_MODE_CLIENT) ? "client" :
+						(ifaceRsp.pIface[i].Vhost.Mode == NETUTIL_VHOST_MODE_SERVER) ? "server" : "error");
+					if (ifaceRsp.pIface[i].Vhost.Socketpath) {
+						printf("  Socketpath=\"%s\"", ifaceRsp.pIface[i].Vhost.Socketpath);
+						free(ifaceRsp.pIface[i].Vhost.Socketpath);
+					}
+					printf("\n");
+					break;
+				case NETUTIL_TYPE_MEMIF:
+					printf("  ");
+					printf("  Role=%s",
+						(ifaceRsp.pIface[i].Memif.Role == NETUTIL_MEMIF_ROLE_MASTER) ? "master" :
+						(ifaceRsp.pIface[i].Memif.Role == NETUTIL_MEMIF_ROLE_SLAVE) ? "slave" : "error");
+					printf("  Mode=%s",
+						(ifaceRsp.pIface[i].Memif.Mode == NETUTIL_MEMIF_MODE_ETHERNET) ? "ethernet" :
+						(ifaceRsp.pIface[i].Memif.Mode == NETUTIL_MEMIF_MODE_IP) ? "ip" :
+						(ifaceRsp.pIface[i].Memif.Mode == NETUTIL_MEMIF_MODE_INJECT_PUNT) ? "inject-punt" : "error");
+					if (ifaceRsp.pIface[i].Memif.Socketpath) {
+						printf("  Socketpath=\"%s\"", ifaceRsp.pIface[i].Memif.Socketpath);
+						free(ifaceRsp.pIface[i].Memif.Socketpath);
+					}
+					printf("\n");
+					break;
 			}
-		}
 
-		if (networkStatusRsp.Status[i].Mac) {
-			printf("  networkStatusRsp.Status[%d].Mac = %s\n", i, networkStatusRsp.Status[i].Mac);
-			free(networkStatusRsp.Status[i].Mac);
-		}
-	}
-
-
-	//
-	// Example of a C call to GO that returns a structure
-	// containing a slice of structures which contain strings.
-	//
-	// Note1: Calling C function must free the string.
-	// Note2: Haven't investigated slices yet. So they
-	//   defined as arrays.
-	// Note3: The GO side cannot return any allocated
-	//   data, so the data is allocated on the C side and
-	//   passed in as a pointer.
-	//
-	printf("Call NetUtil GetNetworkInterface():\n");
-	memset(&networkInterfaceRsp, 0, sizeof(networkInterfaceRsp));
-	err = GetNetworkInterface(int_type, &networkInterfaceRsp);
-	if (err) {
-		printf("Couldn't get network interface, err code: %d\n", err);
-		return err;
-	}
-	for (i = 0; i < NETUTIL_NUM_NETWORKINTERFACE; i++) {
-		if (networkInterfaceRsp.Interface[i].Type) {
-			printf("  networkInterfaceRsp.Interface[%d].Type = %s\n", i, networkInterfaceRsp.Interface[i].Type);
-			free(networkInterfaceRsp.Interface[i].Type);
-		}
-
-		if (networkInterfaceRsp.Interface[i].Name) {
-			printf("  networkInterfaceRsp.Interface[%d].Name = %s\n", i, networkInterfaceRsp.Interface[i].Name);
-			free(networkInterfaceRsp.Interface[i].Name);
-		}
-
-		if (networkInterfaceRsp.Interface[i].Sriov.PCIAddress) {
-			printf("  networkInterfaceRsp.Interface[%d].Sriov.PCIAddress = %s\n", i, networkInterfaceRsp.Interface[i].Sriov.PCIAddress);
-			free(networkInterfaceRsp.Interface[i].Sriov.PCIAddress);
-		}
-
-		if (networkInterfaceRsp.Interface[i].Vhost.SocketFile) {
-			printf("  networkInterfaceRsp.Interface[%d].Vhost.SocketFile = %s\n", i, networkInterfaceRsp.Interface[i].Vhost.SocketFile);
-			free(networkInterfaceRsp.Interface[i].Vhost.SocketFile);
-		}
-
-		if (networkInterfaceRsp.Interface[i].Vhost.Master) {
-			printf("  networkInterfaceRsp.Interface[%d].Vhost.Master = %d\n", i, networkInterfaceRsp.Interface[i].Vhost.Master);
+			printf("  ");
+			if (ifaceRsp.pIface[i].Network.Mac) {
+				printf("  MAC=\"%s\"", ifaceRsp.pIface[i].Network.Mac);
+				free(ifaceRsp.pIface[i].Network.Mac);
+			}
+			for (j = 0; j < NETUTIL_NUM_IPS; j++) {
+				if (ifaceRsp.pIface[i].Network.IPs[j]) {
+					printf("  IP=\"%s\"", ifaceRsp.pIface[i].Network.IPs[j]);
+					free(ifaceRsp.pIface[i].Network.IPs[j]);
+				}
+			}
+			printf("\n");
 		}
 	}
 

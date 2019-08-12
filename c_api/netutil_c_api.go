@@ -10,48 +10,59 @@ struct CPUResponse {
 };
 
 
-struct EnvData {
-    char*    Index;
-    char*    Value;
-};
-// *pEnvs is an array of 'struct EnvData' that is allocated
-// from the C program.
-struct EnvResponse {
-	int             netutil_num_envs;
-	struct EnvData *pEnvs;
-};
+#define NETUTIL_NUM_IPS               10
+#define NETUTIL_NUM_NETWORKINTERFACE  10
 
-#define NETUTIL_NUM_IPS			10
-#define NETUTIL_NUM_NETWORKSTATUS	10
-#define NETUTIL_NUM_NETWORKINTERFACE	10
+#define NETUTIL_TYPE_UNKNOWN  0
+#define NETUTIL_TYPE_KERNEL   1
+#define NETUTIL_TYPE_SRIOV    2
+#define NETUTIL_TYPE_VHOST    3
+#define NETUTIL_TYPE_MEMIF    4
+#define NETUTIL_TYPE_VDPA     5
 
-struct NetworkStatus {
-    char*    Name;
-    char*    Interface;
-    char*    IPs[NETUTIL_NUM_IPS];
-    char*    Mac;
-};
-struct NetworkStatusResponse {
-	struct NetworkStatus Status[NETUTIL_NUM_NETWORKSTATUS];
+struct NetworkData {
+	char*  IPs[NETUTIL_NUM_IPS];
+	char*  Mac;
 };
 
 struct SriovData {
-	char*	PCIAddress;
+	char*  PCIAddress;
 };
 
+#define NETUTIL_VHOST_MODE_CLIENT  0
+#define NETUTIL_VHOST_MODE_SERVER  1
 struct VhostData {
-	char*	SocketFile;
-	bool	Master;
+	char*  Socketpath;
+	int    Mode;
 };
 
-struct NetworkInterface {
-	char*	Name;
-	char*	Type;
-	struct	SriovData	Sriov;
-	struct	VhostData	Vhost;
+#define NETUTIL_MEMIF_ROLE_MASTER  0
+#define NETUTIL_MEMIF_ROLE_SLAVE   1
+#define NETUTIL_MEMIF_MODE_ETHERNET     0
+#define NETUTIL_MEMIF_MODE_IP           1
+#define NETUTIL_MEMIF_MODE_INJECT_PUNT  2
+struct MemifData {
+	char*  Socketpath;
+	int    Role;
+	int    Mode;
 };
-struct NetworkInterfaceResponse {
-	struct NetworkInterface	Interface[NETUTIL_NUM_NETWORKINTERFACE];
+
+struct InterfaceData {
+	char*  IfName;
+	char*  Name;
+	int    Type;
+	struct NetworkData Network;
+	struct SriovData   Sriov;
+	struct VhostData   Vhost;
+	struct MemifData   Memif;
+};
+
+// *pIface is an array of 'struct InterfaceData' that is allocated
+// from the C program.
+struct InterfaceResponse {
+	int                   numIfaceAllocated;
+	int                   numIfacePopulated;
+	struct InterfaceData *pIface;
 };
 
 */
@@ -73,8 +84,12 @@ const (
 	netutil_num_networkinterface = 10
 
 	// Interface type
-	NETUTIL_INTERFACE_TYPE_PCI = "pci"
-	NETUTIL_INTERFACE_TYPE_VHOST = "vhost"
+	NETUTIL_INTERFACE_TYPE_ALL = netlib.INTERFACE_TYPE_ALL
+	NETUTIL_INTERFACE_TYPE_KERNEL = netlib.INTERFACE_TYPE_ALL
+	NETUTIL_INTERFACE_TYPE_SRIOV = netlib.INTERFACE_TYPE_SRIOV
+	NETUTIL_INTERFACE_TYPE_VHOST = netlib.INTERFACE_TYPE_VHOST
+	NETUTIL_INTERFACE_TYPE_MEMIF = netlib.INTERFACE_TYPE_MEMIF
+	NETUTIL_INTERFACE_TYPE_VDPA = netlib.INTERFACE_TYPE_VDPA
 
 	// Errno
 	NETUTIL_ERRNO_SUCCESS = 0
@@ -96,108 +111,98 @@ func GetCPUInfo(c_cpuResp *C.struct_CPUResponse) int64 {
 	return NETUTIL_ERRNO_FAIL
 }
 
-//export GetEnv
-func GetEnv(c_envResp *C.struct_EnvResponse) int64 {
+
+//export GetInterfaces
+func GetInterfaces(c_intType *C.char, c_ifaceRsp *C.struct_InterfaceResponse) int64 {
 	var j _Ctype_int
 
 	flag.Parse()
-	envRsp, err := netlib.GetEnv()
+	ifaceRsp, err := netlib.GetInterfaces(C.GoString(c_intType))
 
 	if err == nil {
 		j = 0
 
-		// Map the input pointer to array of structures, c_envResp.pEnvs, to
-		// a slice of the structures, c_envResp_pEnvs. Then the slice can be
+		// Map the input pointer to array of structures, c_ifaceResp.pIface, to
+		// a slice of the structures, c_ifaceResp_pIface. Then the slice can be
 		// indexed.
-		c_envResp_pEnvs := (*[1 << 30]C.struct_EnvData)(unsafe.Pointer(c_envResp.pEnvs))[:c_envResp.netutil_num_envs:c_envResp.netutil_num_envs]
-		for i, env := range envRsp.Envs {
-			if j < c_envResp.netutil_num_envs {
-				c_envResp_pEnvs[j].Index = C.CString(i)
-				c_envResp_pEnvs[j].Value = C.CString(env)
-				j++
-			} else {
-				glog.Errorf("EnvResponse struct not sized properly. At %d ENV Variables.", j)
-				return NETUTIL_ERRNO_SIZE_ERROR
-			}
-		}
-		return NETUTIL_ERRNO_SUCCESS
-	}
-	glog.Errorf("netlib.GetEnv() err: %+v", err)
-	return NETUTIL_ERRNO_FAIL
-}
+		c_ifaceResp_pIface := (*[1 << 30]C.struct_InterfaceData)(unsafe.Pointer(c_ifaceRsp.pIface))[:c_ifaceRsp.numIfaceAllocated:c_ifaceRsp.numIfaceAllocated]
 
+		for i, iface := range ifaceRsp.Interface {
+			if j < c_ifaceRsp.numIfaceAllocated {
+				c_ifaceResp_pIface[j].IfName = C.CString(iface.IfName)
+				c_ifaceResp_pIface[j].Name = C.CString(iface.Name)
+				c_ifaceRsp.numIfacePopulated++
 
-//export GetNetworkStatus
-func GetNetworkStatus(c_networkResp *C.struct_NetworkStatusResponse) int64 {
-	flag.Parse()
-	networkStatusRsp, err := netlib.GetNetworkStatus()
+				if iface.Network != nil {
+					c_ifaceResp_pIface[j].Network.Mac =
+						C.CString(iface.Network.Mac)
 
-	if err == nil {
-		for i, networkStatus := range networkStatusRsp.Status {
-			if i < netutil_num_networkstatus {
-				c_networkResp.Status[i].Name = C.CString(networkStatus.Name)
-				c_networkResp.Status[i].Interface = C.CString(networkStatus.Interface)
-				c_networkResp.Status[i].Mac = C.CString(networkStatus.Mac)
-				for j, ipaddr := range networkStatus.IPs {
-					if j < netutil_num_ips {
-						c_networkResp.Status[i].IPs[j] = C.CString(ipaddr)
-					} else {
-						glog.Errorf("NetworkStatusResponse IPs struct" +
-							"not sized properly. At %d IPs for Interface %d.", j, i)
-						return NETUTIL_ERRNO_SIZE_ERROR
+					for k, ip := range iface.Network.IPs {
+						if k < netutil_num_ips {
+							c_ifaceResp_pIface[j].Network.IPs[k] =
+								C.CString(ip)
+						} else {
+							glog.Errorf("Network.IPs array not sized properly." +
+								"At Interface %d, IP index %d.", i, k)
+							return NETUTIL_ERRNO_SIZE_ERROR
+						}
 					}
 				}
-			} else {
-				glog.Errorf("NetworkStatusResponse struct not sized properly." +
-					"At %d Interfaces.", i)
-				return NETUTIL_ERRNO_SIZE_ERROR
-			}
-		}
-		return NETUTIL_ERRNO_SUCCESS
-	}
-	glog.Errorf("netlib.GetNetworkStatus() err: %+v", err)
-	return NETUTIL_ERRNO_FAIL
-}
 
-//export GetNetworkInterface
-func GetNetworkInterface(c_intType *C.char, c_netIntResp *C.struct_NetworkInterfaceResponse) int64 {
-	flag.Parse()
-	intRsp, err := netlib.GetNetworkInterface(C.GoString(c_intType))
-
-	if err == nil {
-		for i, iface := range intRsp.Interface {
-			if i < netutil_num_networkinterface {
-				c_netIntResp.Interface[i].Name = C.CString(iface.Name)
-				c_netIntResp.Interface[i].Type = C.CString(iface.Type)
-				switch C.GoString(c_intType) {
-
-				case NETUTIL_INTERFACE_TYPE_PCI:
-					c_netIntResp.Interface[i].Sriov.PCIAddress =
-						C.CString(iface.Sriov.PCIAddress)
-
+				switch iface.Type {
+				case NETUTIL_INTERFACE_TYPE_KERNEL:
+					c_ifaceResp_pIface[j].Type = C.NETUTIL_TYPE_KERNEL
+				case NETUTIL_INTERFACE_TYPE_SRIOV:
+					c_ifaceResp_pIface[j].Type = C.NETUTIL_TYPE_SRIOV
+					if iface.Sriov != nil {
+						c_ifaceResp_pIface[j].Sriov.PCIAddress =
+							C.CString(iface.Sriov.PciAddress)
+					}
 				case NETUTIL_INTERFACE_TYPE_VHOST:
-					c_netIntResp.Interface[i].Vhost.SocketFile =
-						C.CString(iface.Vhost.SocketFile)
-					c_netIntResp.Interface[i].Vhost.Master =
-						(iface.Vhost.Master != false)
-
-				case "":
-					c_netIntResp.Interface[i].Sriov.PCIAddress =
-						C.CString(iface.Sriov.PCIAddress)
-					c_netIntResp.Interface[i].Vhost.SocketFile =
-						C.CString(iface.Vhost.SocketFile)
-					c_netIntResp.Interface[i].Vhost.Master =
-						(iface.Vhost.Master != false)
+					c_ifaceResp_pIface[j].Type = C.NETUTIL_TYPE_VHOST
+					if iface.Vhost != nil {
+						c_ifaceResp_pIface[j].Vhost.Socketpath =
+							C.CString(iface.Vhost.Socketpath)
+						if iface.Vhost.Mode == "client" {
+							c_ifaceResp_pIface[j].Vhost.Mode = C.NETUTIL_VHOST_MODE_CLIENT
+						} else {
+							c_ifaceResp_pIface[j].Vhost.Mode = C.NETUTIL_VHOST_MODE_SERVER
+						}
+					}
+				case NETUTIL_INTERFACE_TYPE_MEMIF:
+					c_ifaceResp_pIface[j].Type = C.NETUTIL_TYPE_MEMIF
+					if iface.Memif != nil {
+						c_ifaceResp_pIface[j].Memif.Socketpath =
+							C.CString(iface.Memif.Socketpath)
+						if iface.Memif.Role == "master" {
+							c_ifaceResp_pIface[j].Memif.Role = C.NETUTIL_MEMIF_ROLE_MASTER
+						} else {
+							c_ifaceResp_pIface[j].Memif.Role = C.NETUTIL_MEMIF_ROLE_SLAVE
+						}
+						if iface.Memif.Mode == "ethernet" {
+							c_ifaceResp_pIface[j].Memif.Mode = C.NETUTIL_MEMIF_MODE_ETHERNET
+						} else if iface.Memif.Mode == "ip" {
+							c_ifaceResp_pIface[j].Memif.Mode = C.NETUTIL_MEMIF_MODE_IP
+						} else {
+							c_ifaceResp_pIface[j].Memif.Mode = C.NETUTIL_MEMIF_MODE_INJECT_PUNT
+						}
+					}
+				case NETUTIL_INTERFACE_TYPE_VDPA:
+					c_ifaceResp_pIface[j].Type = C.NETUTIL_TYPE_VDPA
+				default:
+					c_ifaceResp_pIface[j].Type = C.NETUTIL_TYPE_UNKNOWN
 				}
+
+				j++
 			} else {
-				glog.Errorf("NetworkInterfaceResponse struct not sized properly." +
-					"At %d Interfaces.", i)
+				glog.Errorf("InterfaceResponse struct not sized properly." +
+					"At Interface %d.", i)
 				return NETUTIL_ERRNO_SIZE_ERROR
 			}
 		}
 		return NETUTIL_ERRNO_SUCCESS
 	}
-	glog.Errorf("netlib.GetNetworkInterface() err: %+v", err)
+	glog.Errorf("netlib.GetInterfaces() err: %+v", err)
 	return NETUTIL_ERRNO_FAIL
 }
 

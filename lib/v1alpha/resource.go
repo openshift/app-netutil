@@ -16,6 +16,11 @@ const (
 	cpusetPath = "/sys/fs/cgroup/cpuset/cpuset.cpus"
 )
 
+type EnvResponse struct {
+	Envs	map[string]string
+}
+
+
 func GetCPUInfo() (*CPUResponse, error) {
 	path := filepath.Join("/proc", strconv.Itoa(os.Getpid()), "root", cpusetPath)
 	glog.Infof("getting cpuset from path: %s", path)
@@ -51,8 +56,4 @@ func GetEnv() (*EnvResponse, error) {
 		}
 	}
 	return &EnvResponse{Envs: envAttrs}, nil
-}
-
-func GetResource() (*ResourceResponse, error) {
-	return &ResourceResponse{}, nil
 }
