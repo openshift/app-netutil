@@ -29,6 +29,7 @@ struct SriovData {
 	char*  PCIAddress;
 };
 
+
 #define NETUTIL_VHOST_MODE_CLIENT  0
 #define NETUTIL_VHOST_MODE_SERVER  1
 struct VhostData {
@@ -47,6 +48,7 @@ struct MemifData {
 	int    Mode;
 };
 
+
 struct InterfaceData {
 	char*  IfName;
 	char*  Name;
@@ -64,6 +66,7 @@ struct InterfaceResponse {
 	int                   numIfacePopulated;
 	struct InterfaceData *pIface;
 };
+
 
 */
 import "C"
@@ -91,6 +94,7 @@ const (
 	NETUTIL_INTERFACE_TYPE_MEMIF = netlib.INTERFACE_TYPE_MEMIF
 	NETUTIL_INTERFACE_TYPE_VDPA = netlib.INTERFACE_TYPE_VDPA
 
+
 	// Errno
 	NETUTIL_ERRNO_SUCCESS = 0
 	NETUTIL_ERRNO_FAIL = 1
@@ -110,10 +114,9 @@ func GetCPUInfo(c_cpuResp *C.struct_CPUResponse) int64 {
 	glog.Errorf("netlib.GetCPUInfo() err: %+v", err)
 	return NETUTIL_ERRNO_FAIL
 }
-
-
 //export GetInterfaces
 func GetInterfaces(c_intType *C.char, c_ifaceRsp *C.struct_InterfaceResponse) int64 {
+
 	var j _Ctype_int
 
 	flag.Parse()
@@ -195,8 +198,10 @@ func GetInterfaces(c_intType *C.char, c_ifaceRsp *C.struct_InterfaceResponse) in
 
 				j++
 			} else {
+
 				glog.Errorf("InterfaceResponse struct not sized properly." +
 					"At Interface %d.", i)
+
 				return NETUTIL_ERRNO_SIZE_ERROR
 			}
 		}

@@ -120,6 +120,7 @@ func GetInterfaces(intType string) (*InterfaceResponse, error) {
 
 	// Retrieve the basic data from annotations
 	response, err := retrieveInterfaces()
+
 	if err != nil {
 		glog.Errorf("GetInterfaces: Error calling RetrieveInterfaces: %v", err)
 		return nil, err
