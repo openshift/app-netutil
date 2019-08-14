@@ -42,13 +42,6 @@ const (
 //
 
 // Multus Types
-type NetworkStatus struct {
-	Name       string    `json:"name,omitempty"`
-	Interface  string    `json:"interface,omitempty"`
-	IPs        []string  `json:"ips,omitempty"`
-	Mac        string    `json:"mac,omitempty"`
-}
-
 type MultusNetworkStatus struct {
 	Name       string    `json:"name"`
 	Interface  string    `json:"interface,omitempty"`
@@ -111,42 +104,16 @@ type ConfigurationData struct {
 //
 // API Functions
 //
-func GetInterfaces(intType string) (*InterfaceResponse, error) {
+func GetInterfaces() (*InterfaceResponse, error) {
 	glog.Infof("GetInterfaces: ENTER")
 
-	if intType == "" {
-		return nil, fmt.Errorf("GetInterfaces: Interface type '' not implemented")
-	}
-
-	// Retrieve the basic data from annotations
-	response, err := retrieveInterfaces()
-
-	if err != nil {
-		glog.Errorf("GetInterfaces: Error calling RetrieveInterfaces: %v", err)
-		return nil, err
-	}
-
-	// Process SR-IOV Interfaces
-	if intType == INTERFACE_TYPE_SRIOV || intType == INTERFACE_TYPE_ALL {
-	}
-
-	if intType == INTERFACE_TYPE_VHOST || intType == INTERFACE_TYPE_MEMIF || intType == INTERFACE_TYPE_ALL {
-	}
-
-	return response, nil
-}
-
-//
-// Local Functions
-//
-func retrieveInterfaces() (*InterfaceResponse, error) {
 	response := &InterfaceResponse{}
 
 	// Open Annotations File
-	glog.Infof("RetrieveInterfaces: Open %s", filePathAnnotation)
+	glog.Infof("GetInterfaces: Open %s", filePathAnnotation)
 	file, err := os.Open(filePathAnnotation)
 	if err != nil {
-		glog.Errorf("RetrieveInterfaces: Error opening \"annotations\" file: %v", err)
+		glog.Errorf("GetInterfaces: Error opening \"annotations\" file: %v", err)
 		return response, err
 	}
 	defer file.Close()
@@ -278,7 +245,7 @@ func retrieveInterfaces() (*InterfaceResponse, error) {
 	glog.Infof("PROCESS ENV:")
 	envResponse, err := GetEnv()
 	if err != nil {
-		glog.Errorf("RetrieveInterfaces: Error calling GetEnv: %v", err)
+		glog.Errorf("GetInterfaces: Error calling GetEnv: %v", err)
 		return nil, err
 	}
 	pciAddressSlice := []string{}
