@@ -9,8 +9,6 @@ int main() {
 	struct InterfaceResponse ifaceRsp;
 	int i, j;
 	int err;
-	char* int_type = "all";
-
 
 	printf("Starting sample C application.\n");
 
@@ -54,7 +52,7 @@ int main() {
 	ifaceRsp.pIface = malloc(ifaceRsp.numIfaceAllocated * sizeof(struct InterfaceData));
 	if (ifaceRsp.pIface) {
 		memset(ifaceRsp.pIface, 0, (ifaceRsp.numIfaceAllocated * sizeof(struct InterfaceData)));
-		err = GetInterfaces(int_type, &ifaceRsp);
+		err = GetInterfaces(&ifaceRsp);
 		if (err) {
 			printf("Couldn't get network interface, err code: %d\n", err);
 			return err;
@@ -129,51 +127,6 @@ int main() {
 				}
 			}
 			printf("\n");
-		}
-	}
-
-
-	//
-	// Example of a C call to GO that returns a structure
-	// containing a slice of structures which contain strings.
-	//
-	// Note1: Calling C function must free the string.
-	// Note2: Haven't investigated slices yet. So they
-	//   defined as arrays.
-	// Note3: The GO side cannot return any allocated
-	//   data, so the data is allocated on the C side and
-	//   passed in as a pointer.
-	//
-	printf("Call NetUtil GetNetworkInterface():\n");
-	memset(&networkInterfaceRsp, 0, sizeof(networkInterfaceRsp));
-	err = GetNetworkInterface(int_type, &networkInterfaceRsp);
-	if (err) {
-		printf("Couldn't get network interface, err code: %d\n", err);
-		return err;
-	}
-	for (i = 0; i < NETUTIL_NUM_NETWORKINTERFACE; i++) {
-		if (networkInterfaceRsp.Interface[i].Type) {
-			printf("  networkInterfaceRsp.Interface[%d].Type = %s\n", i, networkInterfaceRsp.Interface[i].Type);
-			free(networkInterfaceRsp.Interface[i].Type);
-		}
-
-		if (networkInterfaceRsp.Interface[i].Name) {
-			printf("  networkInterfaceRsp.Interface[%d].Name = %s\n", i, networkInterfaceRsp.Interface[i].Name);
-			free(networkInterfaceRsp.Interface[i].Name);
-		}
-
-		if (networkInterfaceRsp.Interface[i].Sriov.PCIAddress) {
-			printf("  networkInterfaceRsp.Interface[%d].Sriov.PCIAddress = %s\n", i, networkInterfaceRsp.Interface[i].Sriov.PCIAddress);
-			free(networkInterfaceRsp.Interface[i].Sriov.PCIAddress);
-		}
-
-		if (networkInterfaceRsp.Interface[i].Vhost.SocketFile) {
-			printf("  networkInterfaceRsp.Interface[%d].Vhost.SocketFile = %s\n", i, networkInterfaceRsp.Interface[i].Vhost.SocketFile);
-			free(networkInterfaceRsp.Interface[i].Vhost.SocketFile);
-		}
-
-		if (networkInterfaceRsp.Interface[i].Vhost.Master) {
-			printf("  networkInterfaceRsp.Interface[%d].Vhost.Master = %d\n", i, networkInterfaceRsp.Interface[i].Vhost.Master);
 		}
 	}
 

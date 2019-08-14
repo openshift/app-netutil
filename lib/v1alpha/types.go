@@ -62,7 +62,3 @@ type MemifData struct {
 type VdpaData struct {
 	// TBD
 }
-
-type NetworkStatusResponse struct{
-	Status  []*NetworkStatus  `json:"status,omitempty"`
-}

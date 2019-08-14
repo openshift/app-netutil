@@ -115,12 +115,12 @@ func GetCPUInfo(c_cpuResp *C.struct_CPUResponse) int64 {
 	return NETUTIL_ERRNO_FAIL
 }
 //export GetInterfaces
-func GetInterfaces(c_intType *C.char, c_ifaceRsp *C.struct_InterfaceResponse) int64 {
+func GetInterfaces(c_ifaceRsp *C.struct_InterfaceResponse) int64 {
 
 	var j _Ctype_int
 
 	flag.Parse()
-	ifaceRsp, err := netlib.GetInterfaces(C.GoString(c_intType))
+	ifaceRsp, err := netlib.GetInterfaces()
 
 	if err == nil {
 		j = 0

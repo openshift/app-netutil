@@ -25,7 +25,7 @@ func main() {
 		fmt.Printf("| CPU     |: %+v\n", cpuResponse.CPUSet)
 
 		glog.Infof("CALL netlib.GetInterfaces:")
-		ifaceResponse, err := netlib.GetInterfaces(netlib.INTERFACE_TYPE_ALL)
+		ifaceResponse, err := netlib.GetInterfaces()
 		if err != nil {
 			glog.Errorf("Error calling netlib.GetInterfaces: %v", err)
 			return
