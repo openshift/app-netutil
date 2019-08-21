@@ -5,3 +5,10 @@ import:
   subpackages:
   - pkg/types
 - package: github.com/golang/glog
+- package: github.com/intel/multus-cni
+  subpackages:
+  - types
+- package: github.com/intel/userspace-cni-network-plugin
+  subpackages:
+  - pkg/types
+  - annotations
