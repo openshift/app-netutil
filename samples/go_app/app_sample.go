@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang/glog"
 
+	"github.com/openshift/app-netutil/pkg/types"
 	netlib "github.com/openshift/app-netutil/lib/v1alpha"
 )
 
@@ -38,19 +39,19 @@ func main() {
 			}
 
 			switch iface.Type {
-			case netlib.INTERFACE_TYPE_SRIOV:
+			case types.INTERFACE_TYPE_SRIOV:
 				if iface.Sriov != nil {
 					fmt.Printf("|         |:   PCI=%+v\n", iface.Sriov.PciAddress)
 				}
-			case netlib.INTERFACE_TYPE_VHOST:
+			case types.INTERFACE_TYPE_VHOST:
 				if iface.Vhost != nil {
 					fmt.Printf("|         |:   Mode=%+v  Socketpath=%+v\n", iface.Vhost.Mode, iface.Vhost.Socketpath)
 				}
-			case netlib.INTERFACE_TYPE_MEMIF:
+			case types.INTERFACE_TYPE_MEMIF:
 				if iface.Memif != nil {
 					fmt.Printf("|         |:   Role=%+v  mode=%+v  Socketpath=%+v\n", iface.Memif.Role, iface.Memif.Mode, iface.Memif.Socketpath)
 				}
-			case netlib.INTERFACE_TYPE_KERNEL, netlib.INTERFACE_TYPE_VDPA:
+			case types.INTERFACE_TYPE_KERNEL, types.INTERFACE_TYPE_VDPA:
 			default:
 				// For now, do nothing
 			}
