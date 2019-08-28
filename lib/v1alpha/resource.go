@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+
+	"github.com/openshift/app-netutil/pkg/types"
 )
 
 const (
@@ -21,7 +23,7 @@ type EnvResponse struct {
 }
 
 
-func GetCPUInfo() (*CPUResponse, error) {
+func GetCPUInfo() (*types.CPUResponse, error) {
 	path := filepath.Join("/proc", strconv.Itoa(os.Getpid()), "root", cpusetPath)
 	glog.Infof("getting cpuset from path: %s", path)
 	cpus, err := ioutil.ReadFile(path)
@@ -29,7 +31,7 @@ func GetCPUInfo() (*CPUResponse, error) {
 		glog.Errorf("Error getting cpuset info: %v", err)
 		return nil, err
 	}
-	return &CPUResponse{CPUSet: string(bytes.TrimSpace(cpus))}, nil
+	return &types.CPUResponse{CPUSet: string(bytes.TrimSpace(cpus))}, nil
 }
 
 func GetEnv() (*EnvResponse, error) {

@@ -9,6 +9,10 @@ struct CPUResponse {
     char*    CPUSet;
 };
 
+#define NETUTIL_ERRNO_SUCCESS 0
+#define NETUTIL_ERRNO_FAIL 1
+#define NETUTIL_ERRNO_SIZE_ERROR 2
+
 
 #define NETUTIL_NUM_IPS               10
 #define NETUTIL_NUM_NETWORKINTERFACE  10
@@ -78,6 +82,7 @@ import (
 	"github.com/golang/glog"
 
 	netlib "github.com/openshift/app-netutil/lib/v1alpha"
+	"github.com/openshift/app-netutil/pkg/types"
 )
 
 const (
@@ -87,12 +92,12 @@ const (
 	netutil_num_networkinterface = 10
 
 	// Interface type
-	NETUTIL_INTERFACE_TYPE_ALL = netlib.INTERFACE_TYPE_ALL
-	NETUTIL_INTERFACE_TYPE_KERNEL = netlib.INTERFACE_TYPE_ALL
-	NETUTIL_INTERFACE_TYPE_SRIOV = netlib.INTERFACE_TYPE_SRIOV
-	NETUTIL_INTERFACE_TYPE_VHOST = netlib.INTERFACE_TYPE_VHOST
-	NETUTIL_INTERFACE_TYPE_MEMIF = netlib.INTERFACE_TYPE_MEMIF
-	NETUTIL_INTERFACE_TYPE_VDPA = netlib.INTERFACE_TYPE_VDPA
+	NETUTIL_INTERFACE_TYPE_ALL = types.INTERFACE_TYPE_ALL
+	NETUTIL_INTERFACE_TYPE_KERNEL = types.INTERFACE_TYPE_ALL
+	NETUTIL_INTERFACE_TYPE_SRIOV = types.INTERFACE_TYPE_SRIOV
+	NETUTIL_INTERFACE_TYPE_VHOST = types.INTERFACE_TYPE_VHOST
+	NETUTIL_INTERFACE_TYPE_MEMIF = types.INTERFACE_TYPE_MEMIF
+	NETUTIL_INTERFACE_TYPE_VDPA = types.INTERFACE_TYPE_VDPA
 
 
 	// Errno
@@ -117,7 +122,7 @@ func GetCPUInfo(c_cpuResp *C.struct_CPUResponse) int64 {
 //export GetInterfaces
 func GetInterfaces(c_ifaceRsp *C.struct_InterfaceResponse) int64 {
 
-	var j _Ctype_int
+	var j C.int
 
 	flag.Parse()
 	ifaceRsp, err := netlib.GetInterfaces()
