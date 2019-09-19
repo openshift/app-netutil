@@ -13,7 +13,7 @@ RUN rpm --import https://mirror.go-repo.io/centos/RPM-GPG-KEY-GO-REPO && \
     make clean && \
     make
 
-RUN cp /usr/src/app-netutil/bin/samples /usr/bin/app
+RUN cp /usr/src/app-netutil/bin/go_app /usr/bin/app
 
 WORKDIR /
 

@@ -108,9 +108,9 @@ func GetInterfaces() (*types.InterfaceResponse, error) {
 	// Environmental Variables. Search through them to
 	// see if any can be found.
 	glog.Infof("PROCESS ENV:")
-	envResponse, err := GetEnv()
+	envResponse, err := getEnv()
 	if err != nil {
-		glog.Errorf("GetInterfaces: Error calling GetEnv: %v", err)
+		glog.Errorf("GetInterfaces: Error calling getEnv: %v", err)
 		return nil, err
 	}
 	pciAddressSlice := []string{}
