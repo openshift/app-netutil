@@ -11,7 +11,8 @@
 - [Quick Start](#quick-start)
 	- [Build GO APP](#build-go-app)
 	- [Build C APP](#build-c-app)
-	- [Create Test Pod](#create-test-pod) 
+	- [Create testpod Image](#create-testpod-image)
+	- [Create dpdk-app-centos Image](#create-dpdk-app-centos-image)
 
 ## Network Utility
 Network Utility (app-netutil) is a library that provides API methods
@@ -68,22 +69,21 @@ code shows examples.
 #### DPDK Sample Image
 The initial problem `app-netutil` is trying to solve is to collect initial
 configuration data for a DPDK application running in a container. The DPDK
-Library is written is C, so there is a sample Docker Image that leverages
+Library is written in C, so there is a sample Docker Image that leverages
 the C APIs of `app-netutil` to collect the initial configuration data an
 then use it to start DPDK. See:
 * [dpdk_app](samples/dpdk_app/dpdk-app-centos/README.md)
 
 ## Quick Start
-This section explains an example of building sample appications that uses
-Network Utility Library.
+This section provides examples of building the sample applications that use
+the Network Utility Library. This is just quick start guide, more details
+can be found in the links associated with each section.
 
 ### Build GO APP
 
 1. Compile executable:
 ```
 $ make go_sample
--- OR --
-$ make
 ```
 This builds application binary called `go_app` under `bin/` dir.
 
@@ -107,15 +107,16 @@ $ ./bin/go_app
 <CTRL>-C
 ```
 
-For more details, see:
-* [go_app](samples/go_app/README.md)
-
 3. Clean up:
 ```
 $ make clean
 ```
 
 This cleans up built binary and softlinks.
+
+
+For more details, see:
+* [go_app](samples/go_app/README.md)
 
 ### Build C APP
 
@@ -157,9 +158,6 @@ Call NetUtil GetInterfaces():
     MAC="fa:32:38:0e:b5:94"  IP="10.56.217.91"
 ```
 
-For more details, see:
-* [c_app](samples/c_app/README.md)
-
 3. Clean up:
 ```
 $ make clean
@@ -167,15 +165,23 @@ $ make clean
 
 This cleans up built binary and softlinks.
 
-### Create Test Pod
+
+For more details, see:
+* [c_app](samples/c_app/README.md)
+
+
+### Create testpod Image
+The `testpod` image is a CentOS base image built the `app-netutil`
+library. It simply creates a container that runs the `go_app` sample
+applicatation described above.
 
 1. Build application container image:
 ```
-$ make image
+$ make testpod
 ```
 2. Create application pod:
 ```
-$ kubectl create -f deployments/pod.yaml
+$ kubectl create -f samples/testpod/pod.yaml
 ```
 3. Check for pod logs:
 ```
@@ -208,3 +214,25 @@ I0710 08:07:16.904215       1 app_sample.go:36] netlib.GetNetworkStatus Response
 ```
 $ kubectl delete -f deployments/pod.yaml
 ```
+
+
+For more details, see:
+* [go_app](samples/go_app/README.md)
+
+### Create dpdk-app-centos Image
+The `dpdk-app-centos` image is a CentOS base image built with DPDK
+and includes the `app-netutil` library. The setup to run the image
+is more complicated and depends on if you are using vhost interfaces
+from something like a Userpace CNI or SR-IOV VFs from SR-IOV CNI.
+Below is the quick command to build the image, but it is recommended
+that additional README files are consulted for detailed setup
+instructions.
+
+1. Build application container image:
+```
+$ make dpdk_app
+```
+
+For more details, see:
+* [dpdk_app image](samples/dpdk_app/dpdk-app-centos/README.md)
+* [SR-IOV VF Deployment](samples/dpdk_app/sriov/README.md)

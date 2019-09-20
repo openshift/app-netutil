@@ -15,10 +15,14 @@ details regarding what the image is doing:
 * [dpdk-app-centos](../dpdk-app-centos/README.md)
 
 # SR-IOV Setup
-This test setup assumes you are running on baremetal. Kubernetes, Multus
-and SR-IOV CNI are installed. This test setup uses two physical NICs (PFs),
-and a VF from each PF are attached to the pod. It maps traffic from the PF
-to the each VF using VLANs. 
+This test setup assumes:
+* Running on baremetal.
+* Kubernetes, Multus and SR-IOV CNI are installed.
+* SR-IOV VFs have already been created on the PFs being used.
+
+This test setup uses two physical NICs (PFs) with one VF from each PF
+attached to the pod. It maps traffic from the PF to the each VF using
+VLANs. 
 
 ## Download the sample yaml files
 Use the following steps to download the sample YAML files:
@@ -148,6 +152,31 @@ If needed, ‘exec’ into the container to customize DPDK application:
 ```
 kubectl exec -it sriov-pod-1 -- sh
 ```
+
+## Test Generator
+By default, the DPDK based container ‘dpdk-app-centos’ is running the DPDK
+‘l3fwd’ sample application (see https://doc.dpdk.org/guides/sample_app_ug/l3_forward.html).
+This sample application does some simple routing based on a hard-coded routing
+table. The following subnets are assigned to interfaces:
+```
+Interface 0: Route 192.18.0.0 / 24
+Interface 1: Route 192.18.1.0 / 24
+Interface 2: Route 192.18.2.0 / 24
+Interface 3: Route 192.18.3.0 / 24
+Interface 4: Route 192.18.4.0 / 24
+:
+```
+
+In the test setup described in this document, VFs from the first interface, ‘eno1’,
+will be assigned ‘Interface 0’ in DPDK, and thus will get route `192.18.0.0 / 24`
+assigned to it. VFs from the second interface, ‘eno2’, will be assigned ‘Interface 1’
+in DPDK, and thus will get route 192.18.1.0 / 24 assigned to it. At this time, this
+is not configurable.
+
+As described above, VLAN IDs are used to map packets from the PF to a given VF. This
+value is configurable, but in test setup described here, VLAN 100 is used to map packets
+from the first PF, ‘eno1’, to its associated VF. VLAN 200 is used to map packets from
+the second PF, ‘eno2’, to its associated VF.
 
 # SR-IOV Teardown
 The following steps are used to stop the container and SR-IOV Device

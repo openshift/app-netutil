@@ -7,7 +7,7 @@ DPDK running in a container.
 ## SR-IOV CNI and SR-IOV Device Plugin
 The SR-IOV Device Plugin detects and tracks the VFs associated with an
 SR-IOV PF. The SR-IOV CNI updates the VF as needed and the PCI Address
-associated woth the VF is passed tp the container via environmental
+associated with the VF is passed to the container via environmental
 variables. The container, like this one, boots up and reads the
 environmental variables (via the app-netuilt) and runs a DPDK application.
 
@@ -31,6 +31,11 @@ Build the docker image:
 ```
    cd $GOPATH/src/github.com/openshift/app-netutil/samples/dpdk_app/dpdk-app-centos/
    docker build --rm -t dpdk-app-centos .
+```
+OR
+```
+   cd $GOPATH/src/github.com/openshift/app-netutil/
+   make dpdk_app
 ```
 
 ## Reduce Image Size
