@@ -1,4 +1,4 @@
-# Sample GO Application that calls Net Utility C APIs
+# Sample GO Application that calls Net Utility GO APIs
 
 ## Overview
 This directory contains a GO program (app_sample.go) that calls the 

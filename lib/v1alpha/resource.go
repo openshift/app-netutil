@@ -34,7 +34,7 @@ func GetCPUInfo() (*types.CPUResponse, error) {
 	return &types.CPUResponse{CPUSet: string(bytes.TrimSpace(cpus))}, nil
 }
 
-func GetEnv() (*EnvResponse, error) {
+func getEnv() (*EnvResponse, error) {
 	path := filepath.Join("/proc", strconv.Itoa(os.Getpid()), "environ")
 	glog.Infof("getting environment variables from path: %s", path)
 	file, err := os.Open(path)
