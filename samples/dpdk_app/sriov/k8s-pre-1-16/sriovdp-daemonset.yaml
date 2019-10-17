@@ -6,7 +6,7 @@ metadata:
   namespace: kube-system
 
 ---
-apiVersion: apps/v1
+apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
   name: kube-sriov-device-plugin-amd64
@@ -14,17 +14,12 @@ metadata:
   labels:
     tier: node
     app: sriovdp
-    name: sriovdp
 spec:
-  selector:
-    matchLabels:
-      name: sriovdp
   template:
     metadata:
       labels:
         tier: node
         app: sriovdp
-        name: sriovdp
     spec:
       hostNetwork: true
       hostPID: true

@@ -372,7 +372,7 @@ char** GetArgs(int *pArgc, eDpdkAppType appType)
 			 */
 			strncpy(&myArgsArray[argc++][0], "--", DPDK_ARGS_MAX_ARG_STRLEN-1);
 
-			/* Set the PortMask, Hexadecimal bitmask of ports used by app. */ 
+			/* Set the PortMask, Hexadecimal bitmask of ports used by app. */
 			strncpy(&myArgsArray[argc++][0], "-p", DPDK_ARGS_MAX_ARG_STRLEN-1);
 			snprintf(&myArgsArray[argc++][0], DPDK_ARGS_MAX_ARG_STRLEN-1,
 					"0x%x", portMask);
@@ -425,6 +425,31 @@ char** GetArgs(int *pArgc, eDpdkAppType appType)
 			/* hardware will check the packet type. Not sure if vHost supports. */
 			strncpy(&myArgsArray[argc++][0], "--parse-ptype", DPDK_ARGS_MAX_ARG_STRLEN-1);
 
+		}
+		else if (appType == DPDK_APP_L2FWD) {
+			strncpy(&myArgsArray[argc++][0], "-l", DPDK_ARGS_MAX_ARG_STRLEN-1);
+			strncpy(&myArgsArray[argc++][0], "1-3", DPDK_ARGS_MAX_ARG_STRLEN-1);
+
+			argc = getInterfaces(argc, &portCnt, &portMask);
+
+			/*
+			 * Initialize APP Specific Options
+			 */
+			strncpy(&myArgsArray[argc++][0], "--", DPDK_ARGS_MAX_ARG_STRLEN-1);
+
+			/* Set the PortMask, Hexadecimal bitmask of ports used by app. */
+			strncpy(&myArgsArray[argc++][0], "-p", DPDK_ARGS_MAX_ARG_STRLEN-1);
+			snprintf(&myArgsArray[argc++][0], DPDK_ARGS_MAX_ARG_STRLEN-1,
+					"0x%x", portMask);
+
+			/* Set the PERIOD, statistics will be refreshed each PERIOD seconds. */
+			strncpy(&myArgsArray[argc++][0], "-T", DPDK_ARGS_MAX_ARG_STRLEN-1);
+			strncpy(&myArgsArray[argc++][0], "120", DPDK_ARGS_MAX_ARG_STRLEN-1);
+
+			/* Set to no-mac-updating. When enabled: */
+			/*  - source MAC address is replaced by the TX port MAC address */
+		    /*  - The destination MAC address is replaced by 02:00:00:00:00:TX_PORT_ID */
+			strncpy(&myArgsArray[argc++][0], "--no-mac-updating", DPDK_ARGS_MAX_ARG_STRLEN-1);
 		}
 
 		for (i = 0; i < argc; i++) {

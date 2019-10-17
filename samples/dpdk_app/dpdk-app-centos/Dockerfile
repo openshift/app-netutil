@@ -50,6 +50,11 @@ RUN sed -i -e 's/LIBRTE_PMD_KNI=y/LIBRTE_PMD_KNI=n/' config/common_linux
 #RUN sed -i -e 's/KNI_KMOD=y/KNI_KMOD=n/' config/common_linuxapp
 #RUN sed -i -e 's/LIBRTE_KNI=y/LIBRTE_KNI=n/' config/common_linuxapp
 #RUN sed -i -e 's/LIBRTE_PMD_KNI=y/LIBRTE_PMD_KNI=n/' config/common_linuxapp
+
+# Add vhost patch
+COPY ./vhost_substitute.sh ./vhost_substitute.sh
+RUN ./vhost_substitute.sh
+
 RUN make install T=${RTE_TARGET} DESTDIR=${RTE_SDK}
 
 #
@@ -66,6 +71,19 @@ RUN make
 RUN cp testpmd /usr/bin/testpmd
 
 #
+# Build l2fwd
+#
+WORKDIR ${DPDK_DIR}/examples/l2fwd
+COPY ./dpdk-args.c ./dpdk-args.c
+COPY ./dpdk-args.h ./dpdk-args.h
+COPY ./l2fwd_eal_init.txt ./l2fwd_eal_init.txt
+COPY ./l2fwd_parse_args.txt ./l2fwd_parse_args.txt
+COPY ./l2fwd_substitute.sh ./l2fwd_substitute.sh
+RUN ./l2fwd_substitute.sh
+RUN make
+RUN cp build/l2fwd /usr/bin/l2fwd
+
+#
 # Build l3fwd
 #
 WORKDIR ${DPDK_DIR}/examples/l3fwd
@@ -77,12 +95,15 @@ COPY ./l3fwd_substitute.sh ./l3fwd_substitute.sh
 RUN ./l3fwd_substitute.sh
 RUN make
 RUN cp build/l3fwd /usr/bin/l3fwd
+
+# Copy default APP
 RUN cp build/l3fwd /usr/bin/dpdk-app
 
 # -------- Import stage.
 # Docker 17.05 or higher
 FROM centos
 COPY --from=0 /usr/bin/dpdk-app /usr/bin/dpdk-app
+COPY --from=0 /usr/bin/l2fwd /usr/bin/l2fwd
 COPY --from=0 /usr/bin/l3fwd /usr/bin/l3fwd
 COPY --from=0 /usr/bin/testpmd /usr/bin/testpmd
 COPY --from=0 /lib64/libnetutil_api.so /lib64/libnetutil_api.so
