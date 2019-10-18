@@ -39,15 +39,15 @@ func LoadDelegateNetConfList(bytes []byte, delegateConf *DelegateNetConf) error 
 	logging.Debugf("LoadDelegateNetConfList: %s, %v", string(bytes), delegateConf)
 
 	if err := json.Unmarshal(bytes, &delegateConf.ConfList); err != nil {
-		return logging.Errorf("err in unmarshalling delegate conflist: %v", err)
+		return logging.Errorf("LoadDelegateNetConfList: error unmarshalling delegate conflist: %v", err)
 	}
 
 	if delegateConf.ConfList.Plugins == nil {
-		return logging.Errorf("delegate must have the 'type'or 'Plugin' field")
+		return logging.Errorf("LoadDelegateNetConfList: delegate must have the 'type' or 'plugin' field")
 	}
 
 	if delegateConf.ConfList.Plugins[0].Type == "" {
-		return logging.Errorf("a plugin delegate must have the 'type' field")
+		return logging.Errorf("LoadDelegateNetConfList: a plugin delegate must have the 'type' field")
 	}
 	delegateConf.ConfListPlugin = true
 	return nil
@@ -60,25 +60,25 @@ func LoadDelegateNetConf(bytes []byte, net *NetworkSelectionElement, deviceID st
 
 	delegateConf := &DelegateNetConf{}
 	if err := json.Unmarshal(bytes, &delegateConf.Conf); err != nil {
-		return nil, logging.Errorf("error in LoadDelegateNetConf - unmarshalling delegate config: %v", err)
+		return nil, logging.Errorf("LoadDelegateNetConf: error unmarshalling delegate config: %v", err)
 	}
 
 	// Do some minimal validation
 	if delegateConf.Conf.Type == "" {
 		if err := LoadDelegateNetConfList(bytes, delegateConf); err != nil {
-			return nil, logging.Errorf("error in LoadDelegateNetConf: %v", err)
+			return nil, logging.Errorf("LoadDelegateNetConf: failed with: %v", err)
 		}
 		if deviceID != "" {
 			bytes, err = addDeviceIDInConfList(bytes, deviceID)
 			if err != nil {
-				return nil, logging.Errorf("LoadDelegateNetConf(): failed to add deviceID in NetConfList bytes: %v", err)
+				return nil, logging.Errorf("LoadDelegateNetConf: failed to add deviceID in NetConfList bytes: %v", err)
 			}
 		}
 	} else {
 		if deviceID != "" {
 			bytes, err = delegateAddDeviceID(bytes, deviceID)
 			if err != nil {
-				return nil, logging.Errorf("LoadDelegateNetConf(): failed to add deviceID in NetConf bytes: %v", err)
+				return nil, logging.Errorf("LoadDelegateNetConf: failed to add deviceID in NetConf bytes: %v", err)
 			}
 		}
 	}
@@ -90,14 +90,47 @@ func LoadDelegateNetConf(bytes []byte, net *NetworkSelectionElement, deviceID st
 		if net.MacRequest != "" {
 			delegateConf.MacRequest = net.MacRequest
 		}
-		if net.IPRequest != "" {
+		if net.IPRequest != nil {
 			delegateConf.IPRequest = net.IPRequest
+		}
+		if net.BandwidthRequest != nil {
+			delegateConf.BandwidthRequest = net.BandwidthRequest
+		}
+		if net.PortMappingsRequest != nil {
+			delegateConf.PortMappingsRequest = net.PortMappingsRequest
 		}
 	}
 
 	delegateConf.Bytes = bytes
 
 	return delegateConf, nil
+}
+
+// MergeCNIRuntimeConfig creates CNI runtimeconfig from delegate
+func MergeCNIRuntimeConfig(runtimeConfig *RuntimeConfig, delegate *DelegateNetConf) *RuntimeConfig {
+	logging.Debugf("MergeCNIRuntimeConfig: %v %v", runtimeConfig, delegate)
+	if runtimeConfig == nil {
+		runtimeConfig = &RuntimeConfig{}
+	}
+
+	// multus inject RuntimeConfig only in case of non MasterPlugin.
+	if delegate.MasterPlugin != true {
+		logging.Debugf("MergeCNIRuntimeConfig: add runtimeConfig for net-attach-def: %v", runtimeConfig)
+		if delegate.PortMappingsRequest != nil {
+			runtimeConfig.PortMaps = delegate.PortMappingsRequest
+		}
+		if delegate.BandwidthRequest != nil {
+			runtimeConfig.Bandwidth = delegate.BandwidthRequest
+		}
+		if delegate.IPRequest != nil {
+			runtimeConfig.IPs = delegate.IPRequest
+		}
+		if delegate.MacRequest != "" {
+			runtimeConfig.Mac = delegate.MacRequest
+		}
+	}
+
+	return runtimeConfig
 }
 
 // CreateCNIRuntimeConf create CNI RuntimeConf
@@ -112,7 +145,7 @@ func CreateCNIRuntimeConf(args *skel.CmdArgs, k8sArgs *K8sArgs, ifName string, r
 		NetNS:       args.Netns,
 		IfName:      ifName,
 		Args: [][2]string{
-			{"IgnoreUnknown", "1"},
+			{"IgnoreUnknown", string("true")},
 			{"K8S_POD_NAMESPACE", string(k8sArgs.K8S_POD_NAMESPACE)},
 			{"K8S_POD_NAME", string(k8sArgs.K8S_POD_NAME)},
 			{"K8S_POD_INFRA_CONTAINER_ID", string(k8sArgs.K8S_POD_INFRA_CONTAINER_ID)},
@@ -120,9 +153,20 @@ func CreateCNIRuntimeConf(args *skel.CmdArgs, k8sArgs *K8sArgs, ifName string, r
 	}
 
 	if rc != nil {
-		rt.CapabilityArgs = map[string]interface{}{
-			"portMappings": rc.PortMaps,
+		capabilityArgs := map[string]interface{}{}
+		if len(rc.PortMaps) != 0 {
+			capabilityArgs["portMappings"] = rc.PortMaps
 		}
+		if rc.Bandwidth != nil {
+			capabilityArgs["bandwidth"] = rc.Bandwidth
+		}
+		if len(rc.IPs) != 0 {
+			capabilityArgs["ips"] = rc.IPs
+		}
+		if len(rc.Mac) != 0 {
+			capabilityArgs["mac"] = rc.Mac
+		}
+		rt.CapabilityArgs = capabilityArgs
 	}
 	return rt
 }
@@ -137,7 +181,7 @@ func LoadNetworkStatus(r types.Result, netName string, defaultNet bool) (*Networ
 	// Convert whatever the IPAM result was into the current Result type
 	result, err := current.NewResultFromResult(r)
 	if err != nil {
-		logging.Errorf("error convert the type.Result to current.Result: %v", err)
+		logging.Errorf("LoadNetworkStatus: error converting the type.Result to current.Result: %v", err)
 		return netstatus, err
 	}
 	for _, ifs := range result.Interfaces {
@@ -170,7 +214,7 @@ func LoadNetConf(bytes []byte) (*NetConf, error) {
 
 	logging.Debugf("LoadNetConf: %s", string(bytes))
 	if err := json.Unmarshal(bytes, netconf); err != nil {
-		return nil, logging.Errorf("failed to load netconf: %v", err)
+		return nil, logging.Errorf("LoadNetConf: failed to load netconf: %v", err)
 	}
 
 	// Logging
@@ -185,16 +229,16 @@ func LoadNetConf(bytes []byte) (*NetConf, error) {
 	if netconf.RawPrevResult != nil {
 		resultBytes, err := json.Marshal(netconf.RawPrevResult)
 		if err != nil {
-			return nil, logging.Errorf("could not serialize prevResult: %v", err)
+			return nil, logging.Errorf("LoadNetConf: could not serialize prevResult: %v", err)
 		}
 		res, err := version.NewResult(netconf.CNIVersion, resultBytes)
 		if err != nil {
-			return nil, logging.Errorf("could not parse prevResult: %v", err)
+			return nil, logging.Errorf("LoadNetConf: could not parse prevResult: %v", err)
 		}
 		netconf.RawPrevResult = nil
 		netconf.PrevResult, err = current.NewResultFromResult(res)
 		if err != nil {
-			return nil, logging.Errorf("could not convert result to current version: %v", err)
+			return nil, logging.Errorf("LoadNetConf: could not convert result to current version: %v", err)
 		}
 	}
 
@@ -205,7 +249,7 @@ func LoadNetConf(bytes []byte) (*NetConf, error) {
 	// the existing delegate list and all delegates executed in-order.
 
 	if len(netconf.RawDelegates) == 0 && netconf.ClusterNetwork == "" {
-		return nil, logging.Errorf("at least one delegate/defaultNetwork must be specified")
+		return nil, logging.Errorf("LoadNetConf: at least one delegate/defaultNetwork must be specified")
 	}
 
 	if netconf.CNIDir == "" {
@@ -236,16 +280,16 @@ func LoadNetConf(bytes []byte) (*NetConf, error) {
 	if netconf.ClusterNetwork == "" {
 		// for Delegates
 		if len(netconf.RawDelegates) == 0 {
-			return nil, logging.Errorf("at least one delegate must be specified")
+			return nil, logging.Errorf("LoadNetConf: at least one delegate must be specified")
 		}
 		for idx, rawConf := range netconf.RawDelegates {
 			bytes, err := json.Marshal(rawConf)
 			if err != nil {
-				return nil, logging.Errorf("error marshalling delegate %d config: %v", idx, err)
+				return nil, logging.Errorf("LoadNetConf: error marshalling delegate %d config: %v", idx, err)
 			}
 			delegateConf, err := LoadDelegateNetConf(bytes, nil, "")
 			if err != nil {
-				return nil, logging.Errorf("failed to load delegate %d config: %v", idx, err)
+				return nil, logging.Errorf("LoadNetConf: failed to load delegate %d config: %v", idx, err)
 			}
 			netconf.Delegates = append(netconf.Delegates, delegateConf)
 		}
@@ -281,7 +325,7 @@ func delegateAddDeviceID(inBytes []byte, deviceID string) ([]byte, error) {
 	if err != nil {
 		return nil, logging.Errorf("delegateAddDeviceID: failed to re-marshal Spec.Config: %v", err)
 	}
-	logging.Debugf("delegateAddDeviceID(): updated configBytes %s", string(configBytes))
+	logging.Debugf("delegateAddDeviceID updated configBytes %s", string(configBytes))
 	return configBytes, nil
 }
 
@@ -292,22 +336,22 @@ func addDeviceIDInConfList(inBytes []byte, deviceID string) ([]byte, error) {
 
 	err = json.Unmarshal(inBytes, &rawConfig)
 	if err != nil {
-		return nil, logging.Errorf("addDeviceIDInConfList(): failed to unmarshal inBytes: %v", err)
+		return nil, logging.Errorf("addDeviceIDInConfList: failed to unmarshal inBytes: %v", err)
 	}
 
 	pList, ok := rawConfig["plugins"]
 	if !ok {
-		return nil, logging.Errorf("addDeviceIDInConfList(): unable to get plugin list")
+		return nil, logging.Errorf("addDeviceIDInConfList: unable to get plugin list")
 	}
 
 	pMap, ok := pList.([]interface{})
 	if !ok {
-		return nil, logging.Errorf("addDeviceIDInConfList(): unable to typecast plugin list")
+		return nil, logging.Errorf("addDeviceIDInConfList: unable to typecast plugin list")
 	}
 
 	firstPlugin, ok := pMap[0].(map[string]interface{})
 	if !ok {
-		return nil, logging.Errorf("addDeviceIDInConfList(): unable to typecast pMap")
+		return nil, logging.Errorf("addDeviceIDInConfList: unable to typecast pMap")
 	}
 	// Inject deviceID
 	firstPlugin["deviceID"] = deviceID
@@ -315,9 +359,9 @@ func addDeviceIDInConfList(inBytes []byte, deviceID string) ([]byte, error) {
 
 	configBytes, err := json.Marshal(rawConfig)
 	if err != nil {
-		return nil, logging.Errorf("addDeviceIDInConfList(): failed to re-marshal: %v", err)
+		return nil, logging.Errorf("addDeviceIDInConfList: failed to re-marshal: %v", err)
 	}
-	logging.Debugf("addDeviceIDInConfList(): updated configBytes %s", string(configBytes))
+	logging.Debugf("addDeviceIDInConfList: updated configBytes %s", string(configBytes))
 	return configBytes, nil
 }
 
@@ -329,43 +373,4 @@ func CheckSystemNamespaces(namespace string, systemNamespaces []string) bool {
 		}
 	}
 	return false
-}
-
-// UnmarshalJSON unmarshal Network Selection Annotation. This also supports
-// the deprecated "interfaceRequest" property.
-func (net *NetworkSelectionElement) UnmarshalJSON(bytes []byte) error {
-	var networkSelectionMap map[string]string
-
-	if err := json.Unmarshal(bytes, &networkSelectionMap); err != nil {
-		return err
-	}
-
-	if name, ok := networkSelectionMap["name"]; ok {
-		net.Name = name
-	} else {
-		return logging.Errorf(`UnmarshalJSON(): "name" was not provided`)
-	}
-
-	if namespace, ok := networkSelectionMap["namespace"]; ok {
-		net.Namespace = namespace
-	}
-
-	if ips, ok := networkSelectionMap["ips"]; ok {
-		net.IPRequest = ips
-	}
-
-	if mac, ok := networkSelectionMap["mac"]; ok {
-		net.MacRequest = mac
-	}
-
-	// compatibility pre v3.2
-	if ifName, ok := networkSelectionMap["interfaceRequest"]; ok {
-		net.InterfaceRequest = ifName
-	}
-
-	if ifName, ok := networkSelectionMap["interface"]; ok {
-		net.InterfaceRequest = ifName
-	}
-
-	return nil
 }

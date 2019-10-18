@@ -383,17 +383,20 @@ var _ = Describe("config operations", func() {
 		k8sArgs := &K8sArgs{K8S_POD_NAME: "dummy", K8S_POD_NAMESPACE: "namespacedummy", K8S_POD_INFRA_CONTAINER_ID: "123456789"}
 
 		rc := &RuntimeConfig{}
-		tempportmap := make([]PortMapEntry, 2)
-		rc.PortMaps = tempportmap
+		rc.PortMaps = make([]*PortMapEntry, 2)
 
-		rc.PortMaps[0].HostPort = 0
-		rc.PortMaps[0].ContainerPort = 1
-		rc.PortMaps[0].Protocol = "sampleProtocol"
-		rc.PortMaps[0].HostIP = "sampleHostIP"
-		rc.PortMaps[1].HostPort = 1
-		rc.PortMaps[1].ContainerPort = 2
-		rc.PortMaps[1].Protocol = "anotherSampleProtocol"
-		rc.PortMaps[1].HostIP = "anotherSampleHostIP"
+		rc.PortMaps[0] = &PortMapEntry{
+			HostPort:      0,
+			ContainerPort: 1,
+			Protocol:      "sampleProtocol",
+			HostIP:        "sampleHostIP",
+		}
+		rc.PortMaps[1] = &PortMapEntry{
+			HostPort:      1,
+			ContainerPort: 2,
+			Protocol:      "anotherSampleProtocol",
+			HostIP:        "anotherSampleHostIP",
+		}
 
 		rt := CreateCNIRuntimeConf(args, k8sArgs, "", rc)
 		fmt.Println("rt.ContainerID: ", rt.ContainerID)
@@ -468,48 +471,122 @@ var _ = Describe("config operations", func() {
 		Expect(err).To(HaveOccurred())
 	})
 
-	Context("using UnmarshalJSON", func() {
-		It("succeeds with valid json", func() {
-			networkselectionelement := &NetworkSelectionElement{
-				Name:             "kube-system",
-				Namespace:        "net1",
-				InterfaceRequest: "",
-			}
-			conf := `{
-	"name": "kube-system",
-	"namespace": "net1",
-	"interfaceRequest": "",
-	"ips": "10.18.89.129",
-	"mac": "CB-32-97-FF-D6-79",
-	"interface": ""
-}`
-			err := networkselectionelement.UnmarshalJSON([]byte(conf))
-			Expect(err).NotTo(HaveOccurred())
-		})
+	It("verify the network selection elements goes into delegateconf", func() {
+		cniConfig := `{
+        "name": "weave1",
+        "cniVersion": "0.2.0",
+        "type": "weave-net"
+    }`
+		bandwidthEntry1 := &BandwidthEntry{
+			IngressRate:  100,
+			IngressBurst: 200,
+			EgressRate:   100,
+			EgressBurst:  200,
+		}
 
-		It("fails to parse invalid json", func() {
-			networkselectionelement := &NetworkSelectionElement{
-				Name:             "kube-system",
-				Namespace:        "net1",
-				InterfaceRequest: "",
-			}
-			err := networkselectionelement.UnmarshalJSON([]byte("invalidjson~"))
-			Expect(err).To(HaveOccurred())
-		})
+		portMapEntry1 := &PortMapEntry{
+			HostPort:      8080,
+			ContainerPort: 80,
+			Protocol:      "tcp",
+			HostIP:        "10.0.0.1",
+		}
 
-		It("fails with missing name parameter", func() {
-			networkselectionelement := &NetworkSelectionElement{
-				Name:             "kube-system",
-				Namespace:        "net1",
-				InterfaceRequest: "",
+		networkSelection := &NetworkSelectionElement{
+			Name:                "testname",
+			InterfaceRequest:    "testIF1",
+			MacRequest:          "c2:11:22:33:44:66",
+			IPRequest:           []string{"10.0.0.1/24"},
+			BandwidthRequest:    bandwidthEntry1,
+			PortMappingsRequest: []*PortMapEntry{portMapEntry1},
+		}
+
+		delegateConf, err := LoadDelegateNetConf([]byte(cniConfig), networkSelection, "")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(delegateConf.IfnameRequest).To(Equal(networkSelection.InterfaceRequest))
+		Expect(delegateConf.MacRequest).To(Equal(networkSelection.MacRequest))
+		Expect(delegateConf.IPRequest).To(Equal(networkSelection.IPRequest))
+		Expect(delegateConf.BandwidthRequest).To(Equal(networkSelection.BandwidthRequest))
+		Expect(delegateConf.PortMappingsRequest).To(Equal(networkSelection.PortMappingsRequest))
+	})
+
+	It("test MergeCNIRuntimeConfig with masterPlugin", func() {
+		conf := `{
+			"name": "node-cni-network",
+			"type": "multus",
+			"kubeconfig": "/etc/kubernetes/node-kubeconfig.yaml",
+			"delegates": [{
+				"type": "weave-net"
+			}],
+		  "runtimeConfig": {
+			  "portMappings": [
+				{"hostPort": 8080, "containerPort": 80, "protocol": "tcp"}
+			  ]
 			}
-			// conf json does not include "name"
-			conf := `{
-	"namespace": "net1",
-	"interfaceRequest": ""
-}`
-			err := networkselectionelement.UnmarshalJSON([]byte(conf))
-			Expect(err).To(HaveOccurred())
-		})
+		}`
+		bandwidthEntry1 := &BandwidthEntry{
+			IngressRate:  100,
+			IngressBurst: 200,
+			EgressRate:   100,
+			EgressBurst:  200,
+		}
+		portMapEntry1 := &PortMapEntry{
+			HostPort:      8080,
+			ContainerPort: 80,
+			Protocol:      "tcp",
+			HostIP:        "10.0.0.1",
+		}
+
+		networkSelection := &NetworkSelectionElement{
+			Name:                "testname",
+			InterfaceRequest:    "testIF1",
+			MacRequest:          "c2:11:22:33:44:66",
+			IPRequest:           []string{"10.0.0.1/24"},
+			BandwidthRequest:    bandwidthEntry1,
+			PortMappingsRequest: []*PortMapEntry{portMapEntry1},
+		}
+		delegate, err := LoadDelegateNetConf([]byte(conf), networkSelection, "")
+		delegate.MasterPlugin = true
+		Expect(err).NotTo(HaveOccurred())
+		runtimeConf := MergeCNIRuntimeConfig(&RuntimeConfig{}, delegate)
+		Expect(runtimeConf.PortMaps).To(BeNil())
+		Expect(runtimeConf.Bandwidth).To(BeNil())
+	})
+
+	It("test MergeCNIRuntimeConfig with delegate plugin", func() {
+		conf := `{
+			"name": "weave1",
+			"cniVersion": "0.2.0",
+			"type": "weave-net"
+		}`
+		bandwidthEntry1 := &BandwidthEntry{
+			IngressRate:  100,
+			IngressBurst: 200,
+			EgressRate:   100,
+			EgressBurst:  200,
+		}
+		portMapEntry1 := &PortMapEntry{
+			HostPort:      8080,
+			ContainerPort: 80,
+			Protocol:      "tcp",
+			HostIP:        "10.0.0.1",
+		}
+
+		networkSelection := &NetworkSelectionElement{
+			Name:                "testname",
+			InterfaceRequest:    "testIF1",
+			MacRequest:          "c2:11:22:33:44:66",
+			IPRequest:           []string{"10.0.0.1/24"},
+			BandwidthRequest:    bandwidthEntry1,
+			PortMappingsRequest: []*PortMapEntry{portMapEntry1},
+		}
+		delegate, err := LoadDelegateNetConf([]byte(conf), networkSelection, "")
+		Expect(err).NotTo(HaveOccurred())
+		runtimeConf := MergeCNIRuntimeConfig(&RuntimeConfig{}, delegate)
+		Expect(runtimeConf.PortMaps).NotTo(BeNil())
+		Expect(len(runtimeConf.PortMaps)).To(BeEquivalentTo(1))
+		Expect(runtimeConf.PortMaps[0]).To(Equal(portMapEntry1))
+		Expect(runtimeConf.Bandwidth).To(Equal(bandwidthEntry1))
+		Expect(len(runtimeConf.IPs)).To(BeEquivalentTo(1))
+		Expect(runtimeConf.Mac).To(Equal("c2:11:22:33:44:66"))
 	})
 })

@@ -56,8 +56,7 @@ Weekly Meeting Details:
   * 08/14/2019     08/28/2019
   * 09/11/2019     09/25/2019
   * 10/09/2019     10/23/2019
-  * 11/06/2019     
-  * **Note:** No 11/20/2019 meeting, KubeCon NA - San Diego
+  * 11/06/2019     (No 11/20/2019 meeting, KubeCon NA - San Diego)
   * 12/04/2019     12/18/2019
 * Meeting Bridge: https://zoom.us/j/2392609689
 * Meeting Minute Document: [Userspace CNI: Weekly Meeting Minutes](https://docs.google.com/document/d/1-lj-y9hIFTwmA9hKo2T7y-fyql2Uv64J7VhiZG0H3ag/edit?usp=sharing)
@@ -109,7 +108,7 @@ for more information.
 # Build & Clean
 
 This plugin is recommended to be built with Go 1.11.10 and either OVS-DPDK 2.9.0-3
-or VPP 19.04.1. Other versions of Go, OVS-DPDK and VPP are theoretically
+or VPP 19.04. Other versions of Go, OVS-DPDK and VPP are theoretically
 supported, but MIGHT cause unknown issue.
 
 There are a few environmental variables used in building and teating this plugin.
@@ -433,7 +432,7 @@ feature (https://github.com/intel/userspace-cni-network-plugin/issues).
 
 ## Installing VPP
 There are several ways to install VPP. This code is based on a fixed release
-VPP (VPP 19.04.1 initially), so it is best to install a released version (even
+VPP (VPP 19.04 initially), so it is best to install a released version (even
 though it is possible to build your own).
 
 
@@ -460,6 +459,13 @@ containers, work still needs to be done. Set SELinux to permissive.
 To install VPP on CentOS from https://packagecloud.io/fdio/ repository:
 ```
 curl -s https://packagecloud.io/install/repositories/fdio/1904/script.rpm.sh | sudo bash
+```
+To resolve dependency issues, install the following packages:
+```
+yum install -y epel-release mbedtls python36
+```
+Installing RPMs:
+```
 yum install -y vpp vpp-lib vpp-plugins vpp-devel vpp-api-python vpp-api-lua vpp-selinux-policy
 ```
 
@@ -475,7 +481,7 @@ sudo systemctl enable vpp
 To install on Ubuntu 16.04 (Xenial) as an example to demonstrate how to install VPP from pre-build packages:
 ```
 export UBUNTU="xenial"
-export RELEASE=".stable.19.04.1"
+export RELEASE=".stable.1904"
 sudo rm /etc/apt/sources.list.d/99fd.io.list
 echo "deb [trusted=yes] https://nexus.fd.io/content/repositories/fd.io$RELEASE.ubuntu.$UBUNTU.main/ ./" | sudo tee -a /etc/apt/sources.list.d/99fd.io.list
 sudo apt-get update
@@ -502,7 +508,7 @@ There are a few environmental variables used in this test. Here is an example:
 
 ```
 
-In order to test, a container with VPP 19.04.1 and usrsp-app has been created:
+In order to test, a container with VPP 19.04 and usrsp-app has been created:
 ```
   docker pull bmcfall/vpp-centos-userspace-cni:latest
 ```

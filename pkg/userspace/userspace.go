@@ -15,7 +15,7 @@ import (
 	"github.com/golang/glog"
 
 	usrsptypes "github.com/intel/userspace-cni-network-plugin/pkg/types"
-	"github.com/intel/userspace-cni-network-plugin/annotations"
+	"github.com/intel/userspace-cni-network-plugin/pkg/annotations"
 
 	"github.com/openshift/app-netutil/pkg/types"
 )
