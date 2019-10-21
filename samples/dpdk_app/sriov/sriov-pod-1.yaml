@@ -28,7 +28,16 @@ spec:
         #cpu: "4"
         intel.com/intel_sriov_dpdk_a: '1'
         intel.com/intel_sriov_dpdk_b: '1'
-    command: ["sleep", "infinity"]
+    # Uncomment to control which DPDK App is running in container.
+    # If not provided, l3fwd is default.
+    #   Options: l2fwd l3fwd testpmd
+    #env:
+    #- name: DPDK_SAMPLE_APP
+    #  value: "l2fwd"
+    #
+    # Uncomment to debug DPDK App or to run manually to change
+    # DPDK command line options.
+    #command: ["sleep", "infinity"]
   volumes:
   - name: podinfo
     downwardAPI:

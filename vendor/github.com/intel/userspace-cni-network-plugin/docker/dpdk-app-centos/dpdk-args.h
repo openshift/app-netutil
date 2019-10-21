@@ -8,7 +8,6 @@
 typedef enum {
 	DPDK_APP_TESTPMD = 1,
 	DPDK_APP_L3FWD,
-	DPDK_APP_L2FWD,
 	DPDK_APP_OTHER
 } eDpdkAppType;
 

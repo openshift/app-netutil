@@ -20,6 +20,7 @@ EOF
 # Set our known directories.
 CNI_CONF_DIR="/host/etc/cni/net.d"
 CNI_BIN_DIR="/host/opt/cni/bin"
+ADDITIONAL_BIN_DIR=""
 MULTUS_CONF_FILE="/usr/src/multus-cni/images/70-multus.conf"
 MULTUS_AUTOCONF_DIR="/host/etc/cni/net.d"
 MULTUS_BIN_FILE="/usr/src/multus-cni/bin/multus"
@@ -30,6 +31,8 @@ MULTUS_LOG_FILE=""
 OVERRIDE_NETWORK_NAME=false
 MULTUS_CLEANUP_CONFIG_ON_EXIT=false
 RESTART_CRIO=false
+CRIO_RESTARTED_ONCE=false
+RENAME_SOURCE_CONFIG_FILE=false
 
 # Give help text for parameters.
 function usage()
@@ -55,6 +58,8 @@ function usage()
     echo -e "\t--multus-log-file=$MULTUS_LOG_FILE (empty by default, used only with --multus-conf-file=auto)"
     echo -e "\t--override-network-name=false (used only with --multus-conf-file=auto)"
     echo -e "\t--cleanup-config-on-exit=false (used only with --multus-conf-file=auto)"
+    echo -e "\t--rename-conf-file=false (used only with --multus-conf-file=auto)"
+    echo -e "\t--additional-bin-dir=$ADDITIONAL_BIN_DIR (adds binDir option to configuration, used only with --multus-conf-file=auto)"
     echo -e "\t--restart-crio=false (restarts CRIO after config file is generated)"
 }
 
@@ -120,6 +125,12 @@ while [ "$1" != "" ]; do
             ;;
         --restart-crio)
             RESTART_CRIO=$VALUE
+            ;;
+        --rename-conf-file)
+            RENAME_SOURCE_CONFIG_FILE=$VALUE
+            ;;
+        --additional-bin-dir)
+            ADDITIONAL_BIN_DIR=$VALUE
             ;;
         *)
             warn "unknown parameter \"$PARAM\""
@@ -279,6 +290,11 @@ if [ "$MULTUS_CONF_FILE" == "auto" ]; then
         CNI_VERSION_STRING="\"cniVersion\": \"$CNI_VERSION\","
       fi
 
+      ADDITIONAL_BIN_DIR_STRING=""
+      if [ ! -z "${ADDITIONAL_BIN_DIR// }" ]; then
+        ADDITIONAL_BIN_DIR_STRING="\"binDir\": \"$ADDITIONAL_BIN_DIR\","
+      fi
+
       if [ "$OVERRIDE_NETWORK_NAME" == "true" ]; then
         MASTER_PLUGIN_NET_NAME="$(cat $MULTUS_AUTOCONF_DIR/$MASTER_PLUGIN | \
             python -c 'import json,sys;print json.load(sys.stdin)["name"]')"
@@ -297,6 +313,7 @@ if [ "$MULTUS_CONF_FILE" == "auto" ]; then
           $ISOLATION_STRING
           $LOG_LEVEL_STRING
           $LOG_FILE_STRING
+          $ADDITIONAL_BIN_DIR_STRING
           "kubeconfig": "$MULTUS_KUBECONFIG_FILE_HOST",
           "delegates": [
             $MASTER_PLUGIN_JSON
@@ -307,10 +324,20 @@ EOF
       echo $CONF > $CNI_CONF_DIR/00-multus.conf
       log "Config file created @ $CNI_CONF_DIR/00-multus.conf"
       echo $CONF
+      
+      # If we're not performing the cleanup on exit, we can safely rename the config file.
+      if [ "$RENAME_SOURCE_CONFIG_FILE" == true ]; then
+        mv ${MULTUS_AUTOCONF_DIR}/${MASTER_PLUGIN} ${MULTUS_AUTOCONF_DIR}/${MASTER_PLUGIN}.old
+        log "Original master file moved to ${MULTUS_AUTOCONF_DIR}/${MASTER_PLUGIN}.old"
+      fi
 
       if [ "$RESTART_CRIO" == true ]; then
-        log "Restarting crio"
-        systemctl restart crio
+        # Restart CRIO only once.
+        if [ "$CRIO_RESTARTED_ONCE" == false ]; then
+          log "Restarting crio"
+          systemctl restart crio
+          CRIO_RESTARTED_ONCE=true
+        fi
       fi
     fi
   done

@@ -1,5 +1,5 @@
 hash: b56bdbc85d7585de919828f8279944cc761c0d13a58d405a5c7a7459f9669c3e
-updated: 2019-08-21T15:35:51.618805034-04:00
+updated: 2019-10-18T12:09:44.318017661-04:00
 imports:
 - name: github.com/containernetworking/cni
   version: 4cfb7b568922a3c79a23e438dc52fe537fc9687e
@@ -21,7 +21,7 @@ imports:
   - proto
   - sortkeys
 - name: github.com/golang/glog
-  version: 44145f04b68cf362d9c4df2182967c2275eaefed
+  version: 23def4e6c14b4da8ac2ed8007337bc5eb5007998
 - name: github.com/golang/protobuf
   version: b4deda0973fb4c70b50d226b1af49f3da59f5265
   subpackages:
@@ -47,16 +47,17 @@ imports:
 - name: github.com/imdario/mergo
   version: 6633656539c1639d9d78127b7d47c622b5d7b6dc
 - name: github.com/intel/multus-cni
-  version: b2e1098ab573d11fb5a287fcd43af4262605acd3
+  version: adec211ae101e2cf70dfacf3b75809cff36fd8c4
   subpackages:
   - logging
   - types
 - name: github.com/intel/userspace-cni-network-plugin
-  version: efaa926c09c03e6cdf6900f68b3163322640cc77
+  version: 0dc0c2770343273509ccab0811330a43a99a52b4
   subpackages:
   - annotations
-  - k8sclient
   - logging
+  - pkg/annotations
+  - pkg/k8sclient
   - pkg/types
 - name: github.com/json-iterator/go
   version: f2b4162afba35581b6d4a50d3b8f34e33c144682
