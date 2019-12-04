@@ -205,7 +205,7 @@ I0710 08:07:16.903669       1 app_sample.go:27] netlib.GetEnv Response:
 | KUBERNETES_SERVICE_PORT_HTTPS|: 443
 | KUBERNETES_PORT          |: tcp://10.96.0.1:443
 | KUBERNETES_PORT_443_TCP_ADDR|: 10.96.0.1
-I0710 08:07:16.903756       1 network.go:18] getting network status from path: /etc/podinfo/annotations
+I0710 08:07:16.903756       1 network.go:18] getting network status from path: /etc/podnetinfo/annotations
 I0710 08:07:16.904215       1 app_sample.go:36] netlib.GetNetworkStatus Response:
 | 0                        |: &{Name: Interface: IPs:[10.96.1.157] Mac:}
 ...

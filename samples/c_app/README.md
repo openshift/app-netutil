@@ -46,10 +46,10 @@ $ ./bin/c_sample
 If the application is not actually running in a container where annotations have been
 exposed, run the following to copy a sample annotation file onto the system. There are
 a couple of examples, so choose one that suits your testing. Make sure to name the
-file 'annotations' in the '/etc/podinfo/' directory.
+file 'annotations' in the '/etc/podnetinfo/' directory.
 ```
-$ sudo mkdir -p /etc/podinfo/
-$ sudo cp samples/annotations/annotations_all /etc/podinfo/annotations
+$ sudo mkdir -p /etc/podnetinfo/
+$ sudo cp samples/annotations/annotations_all /etc/podnetinfo/annotations
 ```
 
 SR-IOV exposes the PCI Addresses of the VF to the container using an
