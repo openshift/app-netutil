@@ -12,8 +12,8 @@ spec:
     securityContext:
       privileged: true
     volumeMounts:
-    - mountPath: /etc/podinfo
-      name: podinfo
+    - mountPath: /etc/podnetinfo
+      name: podnetinfo
       readOnly: false
     - mountPath: /dev/hugepages
       name: hugepage
@@ -39,7 +39,7 @@ spec:
     # DPDK command line options.
     #command: ["sleep", "infinity"]
   volumes:
-  - name: podinfo
+  - name: podnetinfo
     downwardAPI:
       items:
         - path: "labels"

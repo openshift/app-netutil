@@ -8,10 +8,10 @@ spec:
     image: app-netutil
     imagePullPolicy: IfNotPresent
     volumeMounts:
-      - name: podinfo
-        mountPath: /etc/podinfo
+      - name: podnetinfo
+        mountPath: /etc/podnetinfo
   volumes:
-    - name: podinfo
+    - name: podnetinfo
       downwardAPI:
         items:
           - path: "annotations"

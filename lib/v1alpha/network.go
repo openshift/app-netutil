@@ -28,8 +28,8 @@ import (
 
 
 const (
-	filePathAnnotation = "/etc/podinfo/annotations"
-	filePathLabel = "/etc/podinfo/labels"
+	filePathAnnotation = "/etc/podnetinfo/annotations"
+	filePathLabel = "/etc/podnetinfo/labels"
 )
 
 //
