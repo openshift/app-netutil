@@ -6,7 +6,7 @@ metadata:
     k8s.v1.cni.cncf.io/networks: sriov-net-a, sriov-net-b
 spec:
   containers:
-  - name: sriov-example
+  - name: dpdk-app
     image: dpdk-app-centos:latest
     imagePullPolicy: Never
     securityContext:
@@ -20,11 +20,13 @@ spec:
     resources:
       requests:
         memory: 1Gi
+        #memory: 2Mi
         #cpu: "4"
         intel.com/intel_sriov_dpdk_a: '1'
         intel.com/intel_sriov_dpdk_b: '1'
       limits:
         hugepages-1Gi: 2Gi
+        #hugepages-2Mi: 2048Mi
         #cpu: "4"
         intel.com/intel_sriov_dpdk_a: '1'
         intel.com/intel_sriov_dpdk_b: '1'
@@ -48,6 +50,11 @@ spec:
         - path: "annotations"
           fieldRef:
             fieldPath: metadata.annotations
+        - path: "hugepageSize"
+          resourceFieldRef:
+            containerName: dpdk-app
+            resource: requests.memory
+            divisor: 1Mi
   - name: hugepage
     emptyDir:
       medium: HugePages

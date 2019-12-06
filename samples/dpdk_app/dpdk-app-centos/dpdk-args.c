@@ -26,10 +26,55 @@ char* myArgv[DPDK_ARGS_MAX_ARGS];
 static char STR_MASTER[] = "master";
 static char STR_SLAVE[] = "slave";
 static char STR_ETHERNET[] = "ethernet";
+static char FILENAME_HUGEPG_SIZE[] = "/etc/podnetinfo/hugepageSize";
 
 /* Large enough to hold: ",mac=aa:bb:cc:dd:ee:ff" */
 #define DPDK_ARGS_MAX_MAC_STRLEN (25)
 
+/* This functionality will be moved over to the app-netutil */
+/* library once details are worked out on how to detect the */
+/* amount of hugepage memory dedicated to a container/pod.  */
+static int getHugepageData(int argc) {
+    FILE *fptr;
+	long hugePgSize = 0;
+
+	/* Hugepage Size configured in the PodSpec can be passed to         */
+	/* the container through the downward API via the "requests.memory" */
+	/* field. Something like:                                           */
+	/*
+	  volumes:
+	  - name: podnetinfo
+	    downwardAPI:
+	      items:
+	      :
+	        - path: "hugepageSize"
+	          resourceFieldRef:
+	            containerName: dpdk-app
+	            resource: requests.memory
+	            divisor: 1Mi
+	*/
+	fptr = fopen(FILENAME_HUGEPG_SIZE, "r");
+	if (fptr != NULL) {
+		fscanf(fptr,"%ld", &hugePgSize);
+		fclose(fptr);
+	}
+	printf("  hugePgSize=%ld\n", hugePgSize);
+
+	/* If 2M Hugepage Size (hugePgSize == 2), add "--single-file-segments". */
+	/* For 1G Hugepage Size (hugePgSize == 1024), do nothing.               */
+	if (hugePgSize == 2) {
+		strncpy(&myArgsArray[argc++][0], "--single-file-segments", DPDK_ARGS_MAX_ARG_STRLEN-1);
+	}
+
+	/* TBD - When a way to detect the amount of hugepage memory */
+	/*       dedicated to the container is developed, this will */
+	/*       be filled in.                                      */
+	//strncpy(&myArgsArray[argc++][0], "-m", DPDK_ARGS_MAX_ARG_STRLEN-1);
+	//strncpy(&myArgsArray[argc++][0], "1024", DPDK_ARGS_MAX_ARG_STRLEN-1);
+
+
+	return(argc);
+}
 
 static int getInterfaces(int argc, int *pPortCnt, int *pPortMask) {
 	int i = 0;
@@ -324,8 +369,7 @@ char** GetArgs(int *pArgc, eDpdkAppType appType)
 		 */
 		strncpy(&myArgsArray[argc++][0], "dpdk-app", DPDK_ARGS_MAX_ARG_STRLEN-1);
 
-		//strncpy(&myArgsArray[argc++][0], "-m", DPDK_ARGS_MAX_ARG_STRLEN-1);
-		//strncpy(&myArgsArray[argc++][0], "1024", DPDK_ARGS_MAX_ARG_STRLEN-1);
+		argc = getHugepageData(argc);
 
 		strncpy(&myArgsArray[argc++][0], "-n", DPDK_ARGS_MAX_ARG_STRLEN-1);
 		strncpy(&myArgsArray[argc++][0], "4", DPDK_ARGS_MAX_ARG_STRLEN-1);
