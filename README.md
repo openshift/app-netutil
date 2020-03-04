@@ -31,6 +31,8 @@ DPDK application. Currently it is using Environmental Variables to do this.
 Once the above data is in the container, this library has been written to
 abstract out where to look and how to process all data passed in.
 
+> Note: [Userspace CNI](https://github.com/intel/userspace-cni-network-plugin) is not officially supported in OpenShift.
+
 ## APIs
 Currently there are two API methods implemented:
 * `GetCPUInfo()`
@@ -41,6 +43,11 @@ Currently there are two API methods implemented:
   returns the list, along with the interface type and type specific data.
 
 There is a GO and C version of each of these functions.
+
+> Note: `--socket-mem` is usually used in DPDK application to specify how
+much memory to allocate from hugepages on specific sockets. To get how many
+hugepages are available in container, a new hugepage API will be supported
+once hugepage is supported in downward API via [this PR](https://github.com/kubernetes/kubernetes/pull/86102)
 
 ### GO APIs
 
