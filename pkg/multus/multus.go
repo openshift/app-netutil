@@ -70,10 +70,10 @@ func AppendInterfaceData(multusData *MultusPlugin, ifaceRsp *types.InterfaceResp
 					Name: status.Name,
 					Type: types.INTERFACE_TYPE_UNKNOWN,
 					Network: &types.NetworkData{
-						IPs: status.IPs,
-						Mac: status.Mac,
-						Default: status.Default,
-						DNS: status.DNS,
+						IPs:     status.IPs,
+						Mac:     status.Mac,
+						DNS:     status.DNS,
+						Gateway: status.Gateway,
 					},
 				}
 

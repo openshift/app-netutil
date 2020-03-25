@@ -86,7 +86,6 @@ func AppendInterfaceData(usrspData *UserspacePlugin, ifaceRsp *types.InterfaceRe
 							Name: configData.Name,
 							Type: types.INTERFACE_TYPE_UNKNOWN,
 							Network: &types.NetworkData{
-								Default: false,
 								DNS: configData.IPResult.DNS,
 							},
 						}

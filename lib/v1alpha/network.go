@@ -128,7 +128,7 @@ func GetInterfaces() (*types.InterfaceResponse, error) {
 	var pciIndex int
 	for _, interfaceData := range response.Interface {
 		if interfaceData.Type == types.INTERFACE_TYPE_UNKNOWN {
-			if interfaceData.Network.Default {
+			if len(interfaceData.Network.Gateway) > 0 {
 				glog.Infof(" Set Interface to kernel: %s", interfaceData.IfName)
 				interfaceData.Type = types.INTERFACE_TYPE_KERNEL
 			} else {
