@@ -1,6 +1,8 @@
 package types
 
 import (
+	"net"
+
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 )
 
@@ -38,10 +40,10 @@ type InterfaceData struct {
 }
 
 type NetworkData struct {
-	IPs       []string  `json:"ips,omitempty"`
-	Mac       string    `json:"mac,omitempty"`
-	Default   bool      `json:"default,omitempty"`
-	DNS       cnitypes.DNS `json:"dns,omitempty"`
+	IPs     []string     `json:"ips,omitempty"`
+	Mac     string       `json:"mac,omitempty"`
+	DNS     cnitypes.DNS `json:"dns,omitempty"`
+	Gateway []net.IP     `json:"default-route,omitempty"`
 }
 
 type SriovData struct {
