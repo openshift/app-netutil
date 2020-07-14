@@ -1,11 +1,40 @@
 # Container Network Interface Specification
 
+- [Container Network Interface Specification](#container-network-interface-specification)
+  - [Version](#version)
+      - [Released versions](#released-versions)
+  - [Overview](#overview)
+  - [General considerations](#general-considerations)
+  - [CNI Plugin](#cni-plugin)
+    - [Overview](#overview-1)
+    - [Parameters](#parameters)
+    - [Result](#result)
+    - [Network Configuration](#network-configuration)
+    - [Example configurations](#example-configurations)
+      - [Example bridge configuration](#example-bridge-configuration)
+      - [Example ovs configuration](#example-ovs-configuration)
+      - [Example macvlan configuration](#example-macvlan-configuration)
+    - [Network Configuration Lists](#network-configuration-lists)
+      - [Network Configuration List Error Handling](#network-configuration-list-error-handling)
+      - [Example network configuration lists](#example-network-configuration-lists)
+      - [Network configuration list runtime examples](#network-configuration-list-runtime-examples)
+    - [IP Allocation](#ip-allocation)
+      - [IP Address Management (IPAM) Interface](#ip-address-management-ipam-interface)
+      - [Notes](#notes)
+    - [Well-known Structures](#well-known-structures)
+      - [IPs](#ips)
+      - [Routes](#routes)
+      - [DNS](#dns)
+  - [Well-known Error Codes](#well-known-error-codes)
+
 ## Version
+
 This is CNI **spec** version **0.4.0**.
 
 Note that this is **independent from the version of the CNI library and plugins** in this repository (e.g. the versions of [releases](https://github.com/containernetworking/cni/releases)).
 
 #### Released versions
+
 Released versions of the spec are available as Git tags.
 
 | tag                                                                                  | spec permalink                                                                        | major changes                     |
@@ -64,11 +93,11 @@ The operations that CNI plugins must support are:
 
 - `ADD`: Add container to network
   - Parameters:
-    - **Container ID**. A unique plaintext identifier for a container, allocated by the runtime. Must not be empty.
+    - **Container ID**. A unique plaintext identifier for a container, allocated by the runtime. Must not be empty.  Must start with a alphanumeric character, optionally followed by any combination of one or more alphanumeric characters, underscore (_), dot (.) or hyphen (-).
     - **Network namespace path**. This represents the path to the network namespace to be added, i.e. /proc/[pid]/ns/net or a bind-mount/link to it.
     - **Network configuration**. This is a JSON document describing a network to which a container can be joined. The schema is described below.
     - **Extra arguments**. This provides an alternative mechanism to allow simple configuration of CNI plugins on a per-container basis.
-    - **Name of the interface inside the container**. This is the name that should be assigned to the interface created inside the container (network namespace); consequently it must comply with the standard Linux restrictions on interface names.
+    - **Name of the interface inside the container**. This is the name that should be assigned to the interface created inside the container (network namespace); consequently it must comply with the standard Linux restrictions on interface names, must not be empty, must not be "." or "..", must be less than 16 characters and must not contain / or : or any whitespace characters.
   - Result:
     - **Interfaces list**. Depending on the plugin, this can include the sandbox (eg, container or hypervisor) interface name and/or the host interface name, the hardware addresses of each interface, and details about the sandbox (if any) the interface is in.
     - **IP configuration assigned to each interface**. The IPv4 and/or IPv6 addresses, gateways, and routes assigned to sandbox and/or host interfaces.
@@ -100,10 +129,7 @@ Plugins should generally complete a `DEL` action without error even if some reso
     - The plugin must return either nothing or an error.
   - The plugin must consult the `prevResult` to determine the expected interfaces and addresses.
   - The plugin must allow for a later chained plugin to have modified networking resources, e.g. routes.
-  - The plugin should return an error if a resource included in the CNI Result type (interface, address or route):
-    - was created by the plugin, and
-    - is listed in `prevResult`, and
-    - does not exist, or is in an invalid state.
+  - The plugin should return an error if a resource included in the CNI Result type (interface, address or route) was created by the plugin, and is listed in `prevResult`, but is missing or in an invalid state.
   - The plugin should return an error if other resources not tracked in the Result type such as the following are missing or are in an invalid state:
     - Firewall rules
     - Traffic shaping controls
@@ -133,6 +159,7 @@ Plugins should generally complete a `DEL` action without error even if some reso
 
 Runtimes must use the type of network (see [Network Configuration](#network-configuration) below) as the name of the executable to invoke.
 Runtimes should then look for this executable in a list of predefined directories (the list of directories is not prescribed by this specification). Once found, it must invoke the executable using the following environment variables for argument passing:
+
 - `CNI_COMMAND`: indicates the desired operation; `ADD`, `DEL`, `CHECK`, or `VERSION`.
 - `CNI_CONTAINERID`: Container ID
 - `CNI_NETNS`: Path to network namespace file
@@ -174,7 +201,7 @@ Plugins must indicate success with a return code of zero and the following JSON 
           "gw": "<ip-of-next-hop>"                           (optional)
       },
       ...
-  ]
+  ],
   "dns": {                                                   (optional)
     "nameservers": <list-of-nameservers>                     (optional)
     "domain": <name-of-local-domain>                         (optional)
@@ -226,7 +253,7 @@ In addition, stderr can be used for unstructured output such as logs.
 
 The network configuration is described in JSON form. The configuration may be stored on disk or generated from other sources by the container runtime. The following fields are well-known and have the following meaning:
 - `cniVersion` (string): [Semantic Version 2.0](https://semver.org) of CNI specification to which this configuration conforms.
-- `name` (string): Network name. This should be unique across all containers on the host (or other administrative domain).
+- `name` (string): Network name. This should be unique across all containers on the host (or other administrative domain).  Must start with a alphanumeric character, optionally followed by any combination of one or more alphanumeric characters, underscore (_), dot (.) or hyphen (-).
 - `type` (string): Refers to the filename of the CNI plugin executable.
 - `args` (dictionary, optional): Additional arguments provided by the container runtime. For example a dictionary of labels could be passed to CNI plugins by adding them to a labels field under `args`.
 - `ipMasq` (boolean, optional): If supported by the plugin, sets up an IP masquerade on the host for this network. This is necessary if the host will act as a gateway to subnets that are not able to route to the IP assigned to the container.
@@ -242,7 +269,9 @@ Plugins may define additional fields that they accept and may generate an error 
 
 ### Example configurations
 
-```json
+#### Example bridge configuration
+
+```jsonc
 {
   "cniVersion": "0.4.0",
   "name": "dbnet",
@@ -261,7 +290,9 @@ Plugins may define additional fields that they accept and may generate an error 
 }
 ```
 
-```json
+#### Example ovs configuration
+
+```jsonc
 {
   "cniVersion": "0.4.0",
   "name": "pci",
@@ -282,7 +313,9 @@ Plugins may define additional fields that they accept and may generate an error 
 }
 ```
 
-```json
+#### Example macvlan configuration
+
+```jsonc
 {
   "cniVersion": "0.4.0",
   "name": "wan",
@@ -304,8 +337,9 @@ Network configuration lists provide a mechanism to run multiple CNI plugins for 
 The list is composed of well-known fields and list of one or more standard CNI network configurations (see above).
 
 The list is described in JSON form, and can be stored on disk or generated from other sources by the container runtime. The following fields are well-known and have the following meaning:
+
 - `cniVersion` (string): [Semantic Version 2.0](https://semver.org) of CNI specification to which this configuration list and all the individual configurations conform.
-- `name` (string): Network name. This should be unique across all containers on the host (or other administrative domain).
+- `name` (string): Network name. This should be unique across all containers on the host (or other administrative domain).  Must start with a alphanumeric character, optionally followed by any combination of one or more alphanumeric characters, underscore (_), dot (.) or hyphen (-).
 - `disableCheck` (string): Either `true` or `false`.  If `disableCheck` is `true`, runtimes must not call `CHECK` for this network configuration list.  This allows an administrator to prevent `CHECK`ing where a combination of plugins is known to return spurious errors.
 - `plugins` (list): A list of standard CNI network configuration dictionaries (see above).
 
@@ -331,7 +365,7 @@ If an `ADD` action fails, when the runtime decides to handle the failure it shou
 
 #### Example network configuration lists
 
-```json
+```jsonc
 {
   "cniVersion": "0.4.0",
   "name": "dbnet",
@@ -373,7 +407,7 @@ Note that the runtime adds the `cniVersion` and `name` fields from configuration
 
 1) first call the `bridge` plugin with the following JSON:
 
-```json
+```jsonc
 {
   "cniVersion": "0.4.0",
   "name": "dbnet",
@@ -417,16 +451,16 @@ Note that the runtime adds the `cniVersion` and `name` fields from configuration
     "interfaces": [
         {
             "name": "cni0",
-            "mac": "00:11:22:33:44:55",
+            "mac": "00:11:22:33:44:55"
         },
         {
             "name": "veth3243",
-            "mac": "55:44:33:22:11:11",
+            "mac": "55:44:33:22:11:11"
         },
         {
             "name": "eth0",
             "mac": "99:88:77:66:55:44",
-            "sandbox": "/var/run/netns/blue",
+            "sandbox": "/var/run/netns/blue"
         }
     ],
     "dns": {
@@ -440,7 +474,7 @@ Given the same network configuration JSON list, the container runtime would perf
 
 1) first call the `bridge` plugin with the following JSON, including the `prevResult` field containing the JSON response from the `ADD` operation:
 
-```json
+```jsonc
 {
   "cniVersion": "0.4.0",
   "name": "dbnet",
@@ -459,7 +493,7 @@ Given the same network configuration JSON list, the container runtime would perf
   },
   "dns": {
     "nameservers": [ "10.1.0.1" ]
-  }
+  },
   "prevResult": {
     "ips": [
         {
@@ -471,16 +505,16 @@ Given the same network configuration JSON list, the container runtime would perf
     "interfaces": [
         {
             "name": "cni0",
-            "mac": "00:11:22:33:44:55",
+            "mac": "00:11:22:33:44:55"
         },
         {
             "name": "veth3243",
-            "mac": "55:44:33:22:11:11",
+            "mac": "55:44:33:22:11:11"
         },
         {
             "name": "eth0",
             "mac": "99:88:77:66:55:44",
-            "sandbox": "/var/run/netns/blue",
+            "sandbox": "/var/run/netns/blue"
         }
     ],
     "dns": {
@@ -511,16 +545,16 @@ Given the same network configuration JSON list, the container runtime would perf
     "interfaces": [
         {
             "name": "cni0",
-            "mac": "00:11:22:33:44:55",
+            "mac": "00:11:22:33:44:55"
         },
         {
             "name": "veth3243",
-            "mac": "55:44:33:22:11:11",
+            "mac": "55:44:33:22:11:11"
         },
         {
             "name": "eth0",
             "mac": "99:88:77:66:55:44",
-            "sandbox": "/var/run/netns/blue",
+            "sandbox": "/var/run/netns/blue"
         }
     ],
     "dns": {
@@ -554,16 +588,16 @@ Note that plugins are executed in reverse order from the `ADD` and `CHECK` actio
     "interfaces": [
         {
             "name": "cni0",
-            "mac": "00:11:22:33:44:55",
+            "mac": "00:11:22:33:44:55"
         },
         {
             "name": "veth3243",
-            "mac": "55:44:33:22:11:11",
+            "mac": "55:44:33:22:11:11"
         },
         {
             "name": "eth0",
             "mac": "99:88:77:66:55:44",
-            "sandbox": "/var/run/netns/blue",
+            "sandbox": "/var/run/netns/blue"
         }
     ],
     "dns": {
@@ -575,7 +609,7 @@ Note that plugins are executed in reverse order from the `ADD` and `CHECK` actio
 
 2) next call the `bridge` plugin with the following JSON, including the `prevResult` field containing the JSON response from the `ADD` action:
 
-```json
+```jsonc
 {
   "cniVersion": "0.4.0",
   "name": "dbnet",
@@ -606,16 +640,16 @@ Note that plugins are executed in reverse order from the `ADD` and `CHECK` actio
     "interfaces": [
         {
             "name": "cni0",
-            "mac": "00:11:22:33:44:55",
+            "mac": "00:11:22:33:44:55"
         },
         {
             "name": "veth3243",
-            "mac": "55:44:33:22:11:11",
+            "mac": "55:44:33:22:11:11"
         },
         {
             "name": "eth0",
             "mac": "99:88:77:66:55:44",
-            "sandbox": "/var/run/netns/blue",
+            "sandbox": "/var/run/netns/blue"
         }
     ],
     "dns": {
@@ -755,7 +789,13 @@ The `dns` field contains a dictionary consisting of common DNS information.
 
 Error codes 1-99 must not be used other than as specified here.
 
-- `1` - Incompatible CNI version
-- `2` - Unsupported field in network configuration. The error message must contain the key and value of the unsupported field.
-- `3` - Container unknown or does not exist. This error implies the runtime does not need to perform any container network cleanup (for example, calling the `DEL` action on the container).
-- `11` - Try again later. If the plugin detects some transient condition that should clear up, it can use this code to notify the runtime it should re-try the operation later.
+Error Code|Error Description
+---|---
+`-1`|Incompatible CNI version
+`-2`|Unsupported field in network configuration. The error message must contain the key and value of the unsupported field.
+`-3`|Container unknown or does not exist. This error implies the runtime does not need to perform any container network cleanup (for example, calling the `DEL` action on the container).
+`-4`|Invalid necessary environment variables, like CNI_COMMAND, CNI_CONTAINERID, etc. The error message must contain the names of invalid variables.
+`-5`|I/O failure. For example, failed to read network config bytes from stdin.
+`-6`|Failed to decode content. For example, failed to unmarshal network config from bytes or failed to decode version info from string.
+`-7`|Invalid network config. If some validations on network configs do not pass, this error will be raised.
+`-11`|Try again later. If the plugin detects some transient condition that should clear up, it can use this code to notify the runtime it should re-try the operation later.

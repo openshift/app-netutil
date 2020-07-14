@@ -37,14 +37,15 @@ import (
 	cnicurrent "github.com/containernetworking/cni/pkg/types/current"
 	cniversion "github.com/containernetworking/cni/pkg/version"
 	"github.com/containernetworking/plugins/pkg/ns"
-	k8s "github.com/intel/multus-cni/k8sclient"
-	"github.com/intel/multus-cni/logging"
-	"github.com/intel/multus-cni/netutils"
-	"github.com/intel/multus-cni/types"
 	nettypes "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	nadutils "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/utils"
 	"github.com/vishvananda/netlink"
+	k8s "gopkg.in/intel/multus-cni.v3/k8sclient"
+	"gopkg.in/intel/multus-cni.v3/logging"
+	"gopkg.in/intel/multus-cni.v3/netutils"
+	"gopkg.in/intel/multus-cni.v3/types"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
@@ -159,7 +160,7 @@ func confAdd(rt *libcni.RuntimeConf, rawNetconf []byte, binDir string, exec invo
 
 	result, err := cniNet.AddNetwork(context.Background(), conf, rt)
 	if err != nil {
-		return nil, logging.Errorf("error in getting result from AddNetwork: %v", err)
+		return nil, err
 	}
 
 	return result, nil
@@ -219,7 +220,7 @@ func conflistAdd(rt *libcni.RuntimeConf, rawnetconflist []byte, binDir string, e
 
 	result, err := cniNet.AddNetworkList(context.Background(), confList, rt)
 	if err != nil {
-		return nil, logging.Errorf("conflistAdd: error in getting result from AddNetworkList: %v", err)
+		return nil, err
 	}
 
 	return result, nil
@@ -319,12 +320,12 @@ func delegateAdd(exec invoke.Exec, kubeClient *k8s.ClientInfo, pod *v1.Pod, ifNa
 	if delegate.ConfListPlugin {
 		result, err = conflistAdd(rt, delegate.Bytes, binDir, exec)
 		if err != nil {
-			return nil, logging.Errorf("delegateAdd: error invoking conflistAdd - %q: %v", delegate.ConfList.Name, err)
+			return nil, err
 		}
 	} else {
 		result, err = confAdd(rt, delegate.Bytes, binDir, exec)
 		if err != nil {
-			return nil, logging.Errorf("delegateAdd: error invoking confAdd - %q: %v", delegate.Conf.Type, err)
+			return nil, err
 		}
 	}
 
@@ -355,11 +356,16 @@ func delegateAdd(exec invoke.Exec, kubeClient *k8s.ClientInfo, pod *v1.Pod, ifNa
 		ips = append(ips, ip.Address.String())
 	}
 
-	// send kubernetes events
-	if delegate.Name != "" {
-		kubeClient.Eventf(pod, v1.EventTypeNormal, "AddedInterface", "Add %s %v from %s", rt.IfName, ips, delegate.Name)
+	if pod != nil {
+		// send kubernetes events
+		if delegate.Name != "" {
+			kubeClient.Eventf(pod, v1.EventTypeNormal, "AddedInterface", "Add %s %v from %s", rt.IfName, ips, delegate.Name)
+		} else {
+			kubeClient.Eventf(pod, v1.EventTypeNormal, "AddedInterface", "Add %s %v", rt.IfName, ips)
+		}
 	} else {
-		kubeClient.Eventf(pod, v1.EventTypeNormal, "AddedInterface", "Add %s %v", rt.IfName, ips)
+		// for further debug https://github.com/intel/multus-cni/issues/481
+		logging.Errorf("delegateAdd: pod nil pointer: namespace: %s, name: %s, container id: %s, pod: %v", rt.Args[1][1], rt.Args[2][1], rt.Args[3][1], pod)
 	}
 
 	return result, nil
@@ -465,6 +471,14 @@ func cmdErr(k8sArgs *types.K8sArgs, format string, args ...interface{}) error {
 	return logging.Errorf(prefix+format, args...)
 }
 
+func cmdPluginErr(k8sArgs *types.K8sArgs, confName string, format string, args ...interface{}) error {
+	msg := ""
+	if k8sArgs != nil {
+		msg += fmt.Sprintf("[%s/%s:%s]: ", k8sArgs.K8S_POD_NAMESPACE, k8sArgs.K8S_POD_NAME, confName)
+	}
+	return logging.Errorf(msg+format, args...)
+}
+
 func cmdAdd(args *skel.CmdArgs, exec invoke.Exec, kubeClient *k8s.ClientInfo) (cnitypes.Result, error) {
 	n, err := types.LoadNetConf(args.StdinData)
 	logging.Debugf("cmdAdd: %v, %v, %v", args, exec, kubeClient)
@@ -492,8 +506,36 @@ func cmdAdd(args *skel.CmdArgs, exec invoke.Exec, kubeClient *k8s.ClientInfo) (c
 		}
 	}
 
+	pod := (*v1.Pod)(nil)
+	if kubeClient != nil {
+		pod, err = kubeClient.GetPod(string(k8sArgs.K8S_POD_NAMESPACE), string(k8sArgs.K8S_POD_NAME))
+		if err != nil {
+			var waitErr error
+			// in case of ServiceUnavailable, retry 10 times with 0.5 sec interval
+			if errors.IsServiceUnavailable(err) {
+				pollDuration := 500 * time.Millisecond
+				pollTimeout := 5 * time.Second
+				waitErr = wait.PollImmediate(pollDuration, pollTimeout, func() (bool, error) {
+					pod, err = kubeClient.GetPod(string(k8sArgs.K8S_POD_NAMESPACE), string(k8sArgs.K8S_POD_NAME))
+					return pod != nil, err
+				})
+				// retry failed, then return error with retry out
+				if waitErr != nil {
+					return nil, cmdErr(k8sArgs, "error getting pod by service unavailable: %v", err)
+				}
+			} else {
+				// Other case, return error
+				return nil, cmdErr(k8sArgs, "error getting pod: %v", err)
+			}
+		}
+	}
+
+	// resourceMap holds Pod device allocation information; only initizized if CRD contains 'resourceName' annotation.
+	// This will only be initialized once and all delegate objects can reference this to look up device info.
+	var resourceMap map[string]*types.ResourceInfo
+
 	if n.ClusterNetwork != "" {
-		err = k8s.GetDefaultNetworks(k8sArgs, n, kubeClient)
+		resourceMap, err = k8s.GetDefaultNetworks(pod, n, kubeClient, resourceMap)
 		if err != nil {
 			return nil, cmdErr(k8sArgs, "failed to get clusterNetwork/defaultNetworks: %v", err)
 		}
@@ -501,7 +543,7 @@ func cmdAdd(args *skel.CmdArgs, exec invoke.Exec, kubeClient *k8s.ClientInfo) (c
 		n.Delegates[0].MasterPlugin = true
 	}
 
-	_, pod, kc, err := k8s.TryLoadPodDelegates(k8sArgs, n, kubeClient)
+	_, kc, err := k8s.TryLoadPodDelegates(pod, n, kubeClient, resourceMap)
 	if err != nil {
 		return nil, cmdErr(k8sArgs, "error loading k8s delegates k8s args: %v", err)
 	}
@@ -528,7 +570,7 @@ func cmdAdd(args *skel.CmdArgs, exec invoke.Exec, kubeClient *k8s.ClientInfo) (c
 			}
 			// Ignore errors; DEL must be idempotent anyway
 			_ = delPlugins(exec, nil, args.IfName, n.Delegates, idx, rt, n.BinDir)
-			return nil, cmdErr(k8sArgs, "error adding container to network %q: %v", netName, err)
+			return nil, cmdPluginErr(k8sArgs, netName, "error adding container to network %q: %v", netName, err)
 		}
 
 		// Remove gateway from routing table if the gateway is not used
@@ -569,7 +611,7 @@ func cmdAdd(args *skel.CmdArgs, exec invoke.Exec, kubeClient *k8s.ClientInfo) (c
 		//create the network status, only in case Multus as kubeconfig
 		if n.Kubeconfig != "" && kc != nil {
 			if !types.CheckSystemNamespaces(string(k8sArgs.K8S_POD_NAME), n.SystemNamespaces) {
-				delegateNetStatus, err := nadutils.CreateNetworkStatus(tmpResult, delegate.Conf.Name, delegate.MasterPlugin)
+				delegateNetStatus, err := nadutils.CreateNetworkStatus(tmpResult, delegate.Name, delegate.MasterPlugin)
 				if err != nil {
 					return nil, cmdErr(k8sArgs, "error setting network status: %v", err)
 				}
@@ -649,13 +691,33 @@ func cmdDel(args *skel.CmdArgs, exec invoke.Exec, kubeClient *k8s.ClientInfo) er
 		return cmdErr(nil, "error getting k8s args: %v", err)
 	}
 
+	if in.ReadinessIndicatorFile != "" {
+		err := wait.PollImmediate(pollDuration, pollTimeout, func() (bool, error) {
+			_, err := os.Stat(in.ReadinessIndicatorFile)
+			return err == nil, nil
+		})
+		if err != nil {
+			return cmdErr(k8sArgs, "PollImmediate error waiting for ReadinessIndicatorFile (on del): %v", err)
+		}
+	}
+
+	pod := (*v1.Pod)(nil)
+	if kubeClient != nil {
+		pod, err = kubeClient.GetPod(string(k8sArgs.K8S_POD_NAMESPACE), string(k8sArgs.K8S_POD_NAME))
+		if err != nil {
+			if !errors.IsNotFound(err) {
+				return cmdErr(k8sArgs, "error getting pod: %v", err)
+			}
+		}
+	}
+
 	// Read the cache to get delegates json for the pod
 	netconfBytes, path, err := consumeScratchNetConf(args.ContainerID, in.CNIDir)
 	if err != nil {
 		// Fetch delegates again if cache is not exist
 		if os.IsNotExist(err) {
 			if in.ClusterNetwork != "" {
-				err = k8s.GetDefaultNetworks(k8sArgs, in, kubeClient)
+				_, err = k8s.GetDefaultNetworks(pod, in, kubeClient, nil)
 				if err != nil {
 					return cmdErr(k8sArgs, "failed to get clusterNetwork/defaultNetworks: %v", err)
 				}
@@ -664,7 +726,7 @@ func cmdDel(args *skel.CmdArgs, exec invoke.Exec, kubeClient *k8s.ClientInfo) er
 			}
 
 			// Get pod annotation and so on
-			_, _, _, err := k8s.TryLoadPodDelegates(k8sArgs, in, kubeClient)
+			_, _, err := k8s.TryLoadPodDelegates(pod, in, kubeClient, nil)
 			if err != nil {
 				if len(in.Delegates) == 0 {
 					// No delegate available so send error
@@ -712,14 +774,6 @@ func cmdDel(args *skel.CmdArgs, exec invoke.Exec, kubeClient *k8s.ClientInfo) er
 		} else {
 			logging.Debugf("WARNING: Unset SetNetworkStatus skipped due to netns not found.")
 		}
-	}
-
-	kubeClient, err = k8s.GetK8sClient(in.Kubeconfig, kubeClient)
-	var pod *v1.Pod
-	if kubeClient != nil {
-		podName := string(k8sArgs.K8S_POD_NAME)
-		podNamespace := string(k8sArgs.K8S_POD_NAMESPACE)
-		pod, _ = kubeClient.GetPod(podNamespace, podName)
 	}
 
 	rt := types.CreateCNIRuntimeConf(args, k8sArgs, "", in.RuntimeConfig)

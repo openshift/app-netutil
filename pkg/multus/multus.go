@@ -14,7 +14,7 @@ import (
 
 	"github.com/golang/glog"
 
-	multus "github.com/intel/multus-cni/types"
+	multus "gopkg.in/intel/multus-cni.v3/types"
 
 	"github.com/openshift/app-netutil/pkg/types"
 )
