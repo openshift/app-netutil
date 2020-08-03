@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: testpod
+spec:
+  containers:
+  - name: sample
+    image: app-netutil
+    imagePullPolicy: IfNotPresent
+    volumeMounts:
+      - name: podnetinfo
+        mountPath: /etc/podnetinfo
+  volumes:
+    - name: podnetinfo
+      downwardAPI:
+        items:
+          - path: "annotations"
+            fieldRef:
+              fieldPath: metadata.annotations
