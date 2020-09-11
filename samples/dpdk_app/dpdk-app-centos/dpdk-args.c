@@ -171,7 +171,7 @@ static int getInterfaces(int argc, int *pPortCnt, int *pPortMask) {
 						if (ifaceRsp.pIface[i].Vhost.Socketpath) {
 							if (ifaceRsp.pIface[i].Vhost.Mode == NETUTIL_VHOST_MODE_SERVER) {
 								snprintf(&myArgsArray[argc++][0], DPDK_ARGS_MAX_ARG_STRLEN-1,
-										 "--vdev=virtio_user%d,path=%s", vhostCnt, ifaceRsp.pIface[i].Vhost.Socketpath);
+										 "--vdev=virtio_user%d,path=%s,server=1", vhostCnt, ifaceRsp.pIface[i].Vhost.Socketpath);
 
 								vhostCnt++;
 								*pPortMask = *pPortMask | 1 << *pPortCnt;
