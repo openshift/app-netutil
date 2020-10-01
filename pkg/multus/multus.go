@@ -34,8 +34,6 @@ func ParseAnnotations(annotKey string, annotValue string, multusData *MultusPlug
 			glog.Errorf("Error unmarshal \"%s\": %v", annotKeyNetworkStatus, err)
 		}
 	}
-
-	return
 }
 
 func AppendInterfaceData(multusData *MultusPlugin, ifaceRsp *types.InterfaceResponse) {
@@ -80,6 +78,4 @@ func AppendInterfaceData(multusData *MultusPlugin, ifaceRsp *types.InterfaceResp
 			ifaceRsp.Interface = append(ifaceRsp.Interface, ifaceData)
 		}
 	}
-
-	return
 }

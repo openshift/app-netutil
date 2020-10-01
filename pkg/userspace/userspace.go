@@ -42,8 +42,6 @@ func ParseAnnotations(annotKey string, annotValue string, usrspData *UserspacePl
 	if annotKey == annotations.AnnotKeyUsrspMappedDir {
 		usrspData.mappedDir = string([]byte(annotValue))
 	}
-
-	return
 }
 
 func AppendInterfaceData(usrspData *UserspacePlugin, ifaceRsp *types.InterfaceResponse) {
@@ -123,5 +121,4 @@ func AppendInterfaceData(usrspData *UserspacePlugin, ifaceRsp *types.InterfaceRe
 			}
 		}
 	}
-	return
 }

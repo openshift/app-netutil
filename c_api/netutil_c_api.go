@@ -87,13 +87,9 @@ import (
 )
 
 const (
-	cpusetPath                   = "/sys/fs/cgroup/cpuset/cpuset.cpus"
-	netutil_num_ips              = 10
-	netutil_num_networkstatus    = 10
-	netutil_num_networkinterface = 10
+	netutil_num_ips = 10
 
 	// Interface type
-	NETUTIL_INTERFACE_TYPE_ALL    = types.INTERFACE_TYPE_ALL
 	NETUTIL_INTERFACE_TYPE_KERNEL = types.INTERFACE_TYPE_ALL
 	NETUTIL_INTERFACE_TYPE_SRIOV  = types.INTERFACE_TYPE_SRIOV
 	NETUTIL_INTERFACE_TYPE_VHOST  = types.INTERFACE_TYPE_VHOST
