@@ -21,15 +21,14 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/openshift/app-netutil/pkg/types"
 	"github.com/openshift/app-netutil/pkg/multus"
+	"github.com/openshift/app-netutil/pkg/types"
 	"github.com/openshift/app-netutil/pkg/userspace"
 )
 
-
 const (
 	filePathAnnotation = "/etc/podnetinfo/annotations"
-	filePathLabel = "/etc/podnetinfo/labels"
+	filePathLabel      = "/etc/podnetinfo/labels"
 )
 
 //
@@ -83,7 +82,7 @@ func GetInterfaces() (*types.InterfaceResponse, error) {
 				parts[1] = strings.Replace(string(parts[1]), "\\n", "", -1)
 				parts[1] = strings.Replace(string(parts[1]), "\\", "", -1)
 				parts[1] = strings.Replace(string(parts[1]), " ", "", -1)
-				parts[1] = string(parts[1][1:len(parts[1])-1])
+				parts[1] = string(parts[1][1 : len(parts[1])-1])
 
 				// Parse any Mults Annotations. Values will be
 				// saved in multusData structure for later.

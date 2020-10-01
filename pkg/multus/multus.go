@@ -52,7 +52,7 @@ func AppendInterfaceData(multusData *MultusPlugin, ifaceRsp *types.InterfaceResp
 		// been discovered by some other means.
 		for _, interfaceData := range ifaceRsp.Interface {
 			if interfaceData.IfName != "" &&
-			   interfaceData.IfName == status.Interface {
+				interfaceData.IfName == status.Interface {
 
 				glog.Infof("  MATCH:")
 				ifaceData = interfaceData
@@ -66,16 +66,16 @@ func AppendInterfaceData(multusData *MultusPlugin, ifaceRsp *types.InterfaceResp
 			glog.Infof("  NO MATCH: Create New Instance")
 
 			ifaceData = &types.InterfaceData{
-					IfName: status.Interface,
-					Name: status.Name,
-					Type: types.INTERFACE_TYPE_UNKNOWN,
-					Network: &types.NetworkData{
-						IPs:     status.IPs,
-						Mac:     status.Mac,
-						DNS:     status.DNS,
-						Gateway: status.Gateway,
-					},
-				}
+				IfName: status.Interface,
+				Name:   status.Name,
+				Type:   types.INTERFACE_TYPE_UNKNOWN,
+				Network: &types.NetworkData{
+					IPs:     status.IPs,
+					Mac:     status.Mac,
+					DNS:     status.DNS,
+					Gateway: status.Gateway,
+				},
+			}
 
 			ifaceRsp.Interface = append(ifaceRsp.Interface, ifaceData)
 		}

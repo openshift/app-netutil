@@ -7,8 +7,8 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/openshift/app-netutil/pkg/types"
 	netlib "github.com/openshift/app-netutil/lib/v1alpha"
+	"github.com/openshift/app-netutil/pkg/types"
 )
 
 func main() {

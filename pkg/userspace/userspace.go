@@ -14,20 +14,20 @@ import (
 
 	"github.com/golang/glog"
 
-	usrsptypes "github.com/intel/userspace-cni-network-plugin/pkg/types"
 	"github.com/intel/userspace-cni-network-plugin/pkg/annotations"
+	usrsptypes "github.com/intel/userspace-cni-network-plugin/pkg/types"
 
 	"github.com/openshift/app-netutil/pkg/types"
 )
 
 const (
-	//AnnotKeyUsrspConfigData = "userspace/configuration-data"
-	//AnnotKeyUsrspMappedDir = "userspace/mapped-dir"
+//AnnotKeyUsrspConfigData = "userspace/configuration-data"
+//AnnotKeyUsrspMappedDir = "userspace/mapped-dir"
 )
 
 type UserspacePlugin struct {
 	configDataSlice []usrsptypes.ConfigurationData
-	mappedDir string
+	mappedDir       string
 }
 
 func ParseAnnotations(annotKey string, annotValue string, usrspData *UserspacePlugin) {
@@ -68,7 +68,7 @@ func AppendInterfaceData(usrspData *UserspacePlugin, ifaceRsp *types.InterfaceRe
 		// been discovered by some other means (like NetworkStatus from Multus)
 		for _, interfaceData := range ifaceRsp.Interface {
 			if interfaceData.IfName != "" &&
-			   interfaceData.IfName == configData.IfName {
+				interfaceData.IfName == configData.IfName {
 
 				glog.Infof("  MATCH:")
 				ifaceData = interfaceData
@@ -82,13 +82,13 @@ func AppendInterfaceData(usrspData *UserspacePlugin, ifaceRsp *types.InterfaceRe
 			glog.Infof("  NO MATCH: Create New Instance")
 
 			ifaceData = &types.InterfaceData{
-							IfName: configData.IfName,
-							Name: configData.Name,
-							Type: types.INTERFACE_TYPE_UNKNOWN,
-							Network: &types.NetworkData{
-								DNS: configData.IPResult.DNS,
-							},
-						}
+				IfName: configData.IfName,
+				Name:   configData.Name,
+				Type:   types.INTERFACE_TYPE_UNKNOWN,
+				Network: &types.NetworkData{
+					DNS: configData.IPResult.DNS,
+				},
+			}
 			// Convert the IPResult structure to the Network Struct used
 			// by app-netutil (based on Multus NetworkStatus)
 			for _, ipconfig := range configData.IPResult.IPs {
@@ -107,14 +107,14 @@ func AppendInterfaceData(usrspData *UserspacePlugin, ifaceRsp *types.InterfaceRe
 			if configData.Config.IfType == "vhostuser" {
 				ifaceData.Type = types.INTERFACE_TYPE_VHOST
 				ifaceData.Vhost = &types.VhostData{
-					Mode: configData.Config.VhostConf.Mode,
+					Mode:       configData.Config.VhostConf.Mode,
 					Socketpath: usrspData.mappedDir + configData.Config.VhostConf.Socketfile,
 				}
 			} else if configData.Config.IfType == "memif" {
 				ifaceData.Type = types.INTERFACE_TYPE_MEMIF
 				ifaceData.Memif = &types.MemifData{
-					Role: configData.Config.MemifConf.Role,
-					Mode: configData.Config.MemifConf.Mode,
+					Role:       configData.Config.MemifConf.Role,
+					Mode:       configData.Config.MemifConf.Mode,
 					Socketpath: usrspData.mappedDir + configData.Config.MemifConf.Socketfile,
 				}
 			} else {

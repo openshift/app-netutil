@@ -1,4 +1,5 @@
 package main
+
 /*
 #include <stdint.h>
 #include <stdbool.h>
@@ -86,26 +87,24 @@ import (
 )
 
 const (
-	cpusetPath = "/sys/fs/cgroup/cpuset/cpuset.cpus"
-	netutil_num_ips = 10
-	netutil_num_networkstatus = 10
+	cpusetPath                   = "/sys/fs/cgroup/cpuset/cpuset.cpus"
+	netutil_num_ips              = 10
+	netutil_num_networkstatus    = 10
 	netutil_num_networkinterface = 10
 
 	// Interface type
-	NETUTIL_INTERFACE_TYPE_ALL = types.INTERFACE_TYPE_ALL
+	NETUTIL_INTERFACE_TYPE_ALL    = types.INTERFACE_TYPE_ALL
 	NETUTIL_INTERFACE_TYPE_KERNEL = types.INTERFACE_TYPE_ALL
-	NETUTIL_INTERFACE_TYPE_SRIOV = types.INTERFACE_TYPE_SRIOV
-	NETUTIL_INTERFACE_TYPE_VHOST = types.INTERFACE_TYPE_VHOST
-	NETUTIL_INTERFACE_TYPE_MEMIF = types.INTERFACE_TYPE_MEMIF
-	NETUTIL_INTERFACE_TYPE_VDPA = types.INTERFACE_TYPE_VDPA
-
+	NETUTIL_INTERFACE_TYPE_SRIOV  = types.INTERFACE_TYPE_SRIOV
+	NETUTIL_INTERFACE_TYPE_VHOST  = types.INTERFACE_TYPE_VHOST
+	NETUTIL_INTERFACE_TYPE_MEMIF  = types.INTERFACE_TYPE_MEMIF
+	NETUTIL_INTERFACE_TYPE_VDPA   = types.INTERFACE_TYPE_VDPA
 
 	// Errno
-	NETUTIL_ERRNO_SUCCESS = 0
-	NETUTIL_ERRNO_FAIL = 1
+	NETUTIL_ERRNO_SUCCESS    = 0
+	NETUTIL_ERRNO_FAIL       = 1
 	NETUTIL_ERRNO_SIZE_ERROR = 2
 )
-
 
 //export GetCPUInfo
 func GetCPUInfo(c_cpuResp *C.struct_CPUResponse) int64 {
@@ -119,6 +118,7 @@ func GetCPUInfo(c_cpuResp *C.struct_CPUResponse) int64 {
 	glog.Errorf("netlib.GetCPUInfo() err: %+v", err)
 	return NETUTIL_ERRNO_FAIL
 }
+
 //export GetInterfaces
 func GetInterfaces(c_ifaceRsp *C.struct_InterfaceResponse) int64 {
 
@@ -150,7 +150,7 @@ func GetInterfaces(c_ifaceRsp *C.struct_InterfaceResponse) int64 {
 							c_ifaceResp_pIface[j].Network.IPs[k] =
 								C.CString(ip)
 						} else {
-							glog.Errorf("Network.IPs array not sized properly." +
+							glog.Errorf("Network.IPs array not sized properly."+
 								"At Interface %d, IP index %d.", i, k)
 							return NETUTIL_ERRNO_SIZE_ERROR
 						}
@@ -204,7 +204,7 @@ func GetInterfaces(c_ifaceRsp *C.struct_InterfaceResponse) int64 {
 				j++
 			} else {
 
-				glog.Errorf("InterfaceResponse struct not sized properly." +
+				glog.Errorf("InterfaceResponse struct not sized properly."+
 					"At Interface %d.", i)
 
 				return NETUTIL_ERRNO_SIZE_ERROR
