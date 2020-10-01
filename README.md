@@ -33,6 +33,9 @@ abstract out where to look and how to process all data passed in.
 
 > Note: [Userspace CNI](https://github.com/intel/userspace-cni-network-plugin) is not officially supported in OpenShift.
 
+Additional Information:
+* [CONTRIBUTING.md](CONTRIBUTING.md)
+
 ## APIs
 Currently there are two API methods implemented:
 * `GetCPUInfo()`
