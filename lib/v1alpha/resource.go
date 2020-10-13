@@ -19,9 +19,8 @@ const (
 )
 
 type EnvResponse struct {
-	Envs	map[string]string
+	Envs map[string]string
 }
-
 
 func GetCPUInfo() (*types.CPUResponse, error) {
 	path := filepath.Join("/proc", strconv.Itoa(os.Getpid()), "root", cpusetPath)
