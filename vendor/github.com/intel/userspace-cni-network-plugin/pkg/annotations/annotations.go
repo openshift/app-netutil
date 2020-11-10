@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright(c) 2018 Red Hat, Inc.
+// Copyright(c) 2018-2020 Red Hat, Inc, Intel Corp.
 
 //
 // This module provides the library functions to read and write
@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
 	"strings"
 
 	v1 "k8s.io/api/core/v1"
@@ -59,8 +60,18 @@ type NoKubeClientProvidedError struct {
 
 func (e *NoKubeClientProvidedError) Error() string { return string(e.message) }
 
+type NoPodProvidedError struct {
+	message string
+}
+
+func (e *NoPodProvidedError) Error() string { return string(e.message) }
+
 func GetPodVolumeMountHostSharedDir(pod *v1.Pod) (string, error) {
 	var hostSharedDir string
+
+	if pod == nil {
+		return hostSharedDir, &NoPodProvidedError{"Error: Pod not provided."}
+	}
 
 	logging.Verbosef("GetPodVolumeMountSharedDir: type=%T Volumes=%v", pod.Spec.Volumes, pod.Spec.Volumes)
 
@@ -90,6 +101,10 @@ func GetPodVolumeMountHostSharedDir(pod *v1.Pod) (string, error) {
 
 func getPodVolumeMountHostMappedSharedDir(pod *v1.Pod) (string, error) {
 	var mappedSharedDir string
+
+	if pod == nil {
+		return mappedSharedDir, &NoPodProvidedError{"Error: Pod not provided."}
+	}
 
 	logging.Verbosef("getPodVolumeMountHostMappedSharedDir: Containers=%v", pod.Spec.Containers)
 
@@ -121,6 +136,10 @@ func WritePodAnnotation(kubeClient kubernetes.Interface,
 	var err error
 	var modifiedConfig bool
 	var modifiedMappedDir bool
+
+	if pod == nil {
+		return pod, &NoPodProvidedError{"Error: Pod not provided."}
+	}
 
 	//
 	// Write configuration data that will be consumed by container
@@ -174,6 +193,10 @@ func setPodAnnotationMappedDir(pod *v1.Pod,
 	mappedDir string) (bool, error) {
 	var modified bool
 
+	if pod == nil {
+		return false, &NoPodProvidedError{"Error: Pod not provided."}
+	}
+
 	logging.Verbosef("SetPodAnnotationMappedDir: inputMappedDir=%s Annot - type=%T mappedDir=%v", mappedDir, pod.Annotations[AnnotKeyUsrspMappedDir], pod.Annotations[AnnotKeyUsrspMappedDir])
 
 	// If pod annotations is empty, make sure it allocatable
@@ -186,7 +209,7 @@ func setPodAnnotationMappedDir(pod *v1.Pod,
 	// it should be the same as the input data.
 	annotDataStr := pod.Annotations[AnnotKeyUsrspMappedDir]
 	if len(annotDataStr) != 0 {
-		if annotDataStr == mappedDir {
+		if filepath.Clean(annotDataStr) == filepath.Clean(mappedDir) {
 			logging.Verbosef("SetPodAnnotationMappedDir: Existing matches input. Do nothing.")
 			return modified, nil
 		} else {
@@ -206,6 +229,16 @@ func setPodAnnotationConfigData(pod *v1.Pod,
 	configData *types.ConfigurationData) (bool, error) {
 	var configDataStr []string
 	var modified bool
+
+	if pod == nil {
+		return false, &NoPodProvidedError{"Error: Pod not provided."}
+	}
+
+	// check for empty configData, otherwise "null" string would be added to annotations
+	if configData == nil {
+		logging.Verbosef("SetPodAnnotationConfigData: ConfigData not provided: %v", configData)
+		return false, nil
+	}
 
 	logging.Verbosef("SetPodAnnotationConfigData: type=%T configData=%v", pod.Annotations[AnnotKeyUsrspConfigData], pod.Annotations[AnnotKeyUsrspConfigData])
 
@@ -254,15 +287,13 @@ func commitAnnotation(kubeClient kubernetes.Interface,
 // These functions can be called from code running in a container. It reads
 // the data from the exposed Downward API.
 //
-const DefaultAnnotationsFile = "/etc/podinfo/annotations"
-
-func getFileAnnotation(annotIndex string) ([]byte, error) {
+func getFileAnnotation(annotFile string, annotIndex string) ([]byte, error) {
 	var rawData []byte
 
-	fileData, err := ioutil.ReadFile(DefaultAnnotationsFile)
+	fileData, err := ioutil.ReadFile(annotFile)
 	if err != nil {
 		logging.Errorf("getFileAnnotation: File Read ERROR - %v", err)
-		return rawData, fmt.Errorf("error reading %s: %s", DefaultAnnotationsFile, err)
+		return rawData, fmt.Errorf("error reading %s: %s", annotFile, err)
 	}
 
 	d := logfmt.NewDecoder(bytes.NewReader(fileData))
@@ -282,8 +313,8 @@ func getFileAnnotation(annotIndex string) ([]byte, error) {
 	return rawData, fmt.Errorf("ERROR: \"%s\" missing from pod annotation", annotIndex)
 }
 
-func GetFileAnnotationMappedDir() (string, error) {
-	rawData, err := getFileAnnotation(AnnotKeyUsrspMappedDir)
+func GetFileAnnotationMappedDir(annotFile string) (string, error) {
+	rawData, err := getFileAnnotation(annotFile, AnnotKeyUsrspMappedDir)
 	if err != nil {
 		return "", err
 	}
@@ -291,13 +322,13 @@ func GetFileAnnotationMappedDir() (string, error) {
 	return string(rawData), err
 }
 
-func GetFileAnnotationConfigData() ([]*types.ConfigurationData, error) {
+func GetFileAnnotationConfigData(annotFile string) ([]*types.ConfigurationData, error) {
 	var configDataList []*types.ConfigurationData
 
 	// Remove
 	logging.Debugf("GetFileAnnotationConfigData: ENTER")
 
-	rawData, err := getFileAnnotation(AnnotKeyUsrspConfigData)
+	rawData, err := getFileAnnotation(annotFile, AnnotKeyUsrspConfigData)
 	if err != nil {
 		return nil, err
 	}
