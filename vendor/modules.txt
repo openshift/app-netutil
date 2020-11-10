@@ -1,7 +1,4 @@
-# github.com/containernetworking/cni v0.7.1
-## explicit
-github.com/containernetworking/cni/libcni
-github.com/containernetworking/cni/pkg/invoke
+# github.com/containernetworking/cni v0.8.0
 github.com/containernetworking/cni/pkg/skel
 github.com/containernetworking/cni/pkg/types
 github.com/containernetworking/cni/pkg/types/020
@@ -35,7 +32,7 @@ github.com/gregjones/httpcache
 github.com/gregjones/httpcache/diskcache
 # github.com/imdario/mergo v0.0.0-20171009183408-7fe0c75c13ab
 github.com/imdario/mergo
-# github.com/intel/userspace-cni-network-plugin v0.0.0-20200416024655-673eeb0d731f
+# github.com/intel/userspace-cni-network-plugin v0.0.0-20201116143459-807c52367c73
 ## explicit
 github.com/intel/userspace-cni-network-plugin/logging
 github.com/intel/userspace-cni-network-plugin/pkg/annotations
