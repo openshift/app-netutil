@@ -252,11 +252,11 @@ static void freeInterfaces(struct InterfaceResponse *pIfaceRsp) {
 
 int main() {
 	struct CPUResponse cpuRsp;
+	struct HugepagesResponse hugepagesRsp;
 	struct InterfaceResponse ifaceRsp;
 	int err;
 
 	printf("Starting sample C application.\n");
-
 
 	//
 	// Example of a C call to GO that returns a string.
@@ -277,6 +277,17 @@ int main() {
 		free(cpuRsp.CPUSet);
 	}
 
+	//
+	// Example of a C call to GO that returns a structure.
+	//
+	printf("Call NetUtil GetHugepages():\n");
+	memset(&hugepagesRsp, 0, sizeof(hugepagesRsp));
+	err = GetHugepages(&hugepagesRsp);
+	if (err) {
+		printf("  Couldn't get Hugepage info, err code: %d\n", err);
+	} else { 
+		printf("  Request = %ld  Limit = %ld\n", hugepagesRsp.Request, hugepagesRsp.Limit);
+	}
 
 	//
 	// Example of a C call to GO that returns a structure

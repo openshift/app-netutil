@@ -1,3 +1,8 @@
+# Pod Spec to work with SR-IOV Network Resource Injector
+#  
+# SR-IOV Network Resource Injector is a mutating webhook that
+# adds Downward API values to the Pod Spec. So this version
+# of Pod Spec has Downward API values commented out. 
 apiVersion: v1
 kind: Pod
 metadata:
@@ -12,9 +17,9 @@ spec:
     securityContext:
       privileged: true
     volumeMounts:
-    - mountPath: /etc/podnetinfo
-      name: podnetinfo
-      readOnly: false
+    #- mountPath: /etc/podnetinfo
+    #  name: podnetinfo
+    #  readOnly: false
     - mountPath: /dev/hugepages
       name: hugepage
     resources:
@@ -43,15 +48,15 @@ spec:
     # DPDK command line options.
     #command: ["sleep", "infinity"]
   volumes:
-  - name: podnetinfo
-    downwardAPI:
-      items:
-        - path: "labels"
-          fieldRef:
-            fieldPath: metadata.labels
-        - path: "annotations"
-          fieldRef:
-            fieldPath: metadata.annotations
+  #- name: podnetinfo
+  #  downwardAPI:
+  #    items:
+  #      - path: "labels"
+  #        fieldRef:
+  #          fieldPath: metadata.labels
+  #      - path: "annotations"
+  #        fieldRef:
+  #         fieldPath: metadata.annotations
         # Exposing Hugepages via Downward API is an alpha feature in
         # Kubernetes 1.20. If K8s is greater than or equal to 1.20 and
         # and Feature Gate is enabled (FEATURE_GATES="DownwardAPIHugePages=true"),

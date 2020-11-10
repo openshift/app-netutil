@@ -473,6 +473,8 @@ char** GetArgs(int *pArgc, eDpdkAppType appType)
 	int argc = 0;
 	int i;
 	struct CPUResponse cpuRsp;
+	struct HugepagesResponse hugepagesRsp;
+	int64_t reqMemory = 0;
 	int err;
 	int portMask = 0;
 	int portCnt = 0;
@@ -495,6 +497,23 @@ char** GetArgs(int *pArgc, eDpdkAppType appType)
 	}
 
 
+	memset(&hugepagesRsp, 0, sizeof(hugepagesRsp));
+	err = GetHugepages(&hugepagesRsp);
+	if (err) {
+		printf("  Couldn't get Hugepage info, err code: %d\n", err);
+	} else {
+		/* Limit can never be less than Request. So use Limit if non-zero.  */
+		/* However, for hugepages, Limit and Request should be the same, so */
+		/* either value should be fine.                                     */
+		reqMemory = hugepagesRsp.Limit != 0 ? hugepagesRsp.Limit : hugepagesRsp.Request;
+		
+		/* Assuming 2 NUMA sockets, only use what container has access too. */
+		/* TBD: Manage NUMA properly. */ 
+		reqMemory = reqMemory / 2;
+		printf("  Hugepage: Request = %ld Limit = %ld  Using = %ld\n", hugepagesRsp.Request, hugepagesRsp.Limit, reqMemory);
+	}
+
+
 	memset(&myArgsArray[0][0], 0, sizeof(char)*DPDK_ARGS_MAX_ARG_STRLEN*DPDK_ARGS_MAX_ARGS);
 	memset(&myArgv[0], 0, sizeof(char)*DPDK_ARGS_MAX_ARGS);
 
@@ -504,8 +523,11 @@ char** GetArgs(int *pArgc, eDpdkAppType appType)
 		 */
 		strncpy(&myArgsArray[argc++][0], "dpdk-app", DPDK_ARGS_MAX_ARG_STRLEN-1);
 
-		//strncpy(&myArgsArray[argc++][0], "-m", DPDK_ARGS_MAX_ARG_STRLEN-1);
-		//strncpy(&myArgsArray[argc++][0], "1024", DPDK_ARGS_MAX_ARG_STRLEN-1);
+		if (reqMemory != 0) {
+			strncpy(&myArgsArray[argc++][0], "-m", DPDK_ARGS_MAX_ARG_STRLEN-1);
+			snprintf(&myArgsArray[argc++][0], DPDK_ARGS_MAX_ARG_STRLEN-1,
+					"%ld", reqMemory);
+		}
 
 		strncpy(&myArgsArray[argc++][0], "-n", DPDK_ARGS_MAX_ARG_STRLEN-1);
 		strncpy(&myArgsArray[argc++][0], "4", DPDK_ARGS_MAX_ARG_STRLEN-1);

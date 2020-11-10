@@ -16,6 +16,7 @@ func main() {
 	glog.Infof("starting sample application")
 
 	for {
+		// Test GetCPUInfo()
 		glog.Infof("CALL netlib.GetCPUInfo:")
 		cpuResponse, err := netlib.GetCPUInfo()
 		if err != nil {
@@ -25,6 +26,17 @@ func main() {
 		glog.Infof("netlib.GetCPUInfo Response:")
 		fmt.Printf("| CPU     |: %+v\n", cpuResponse.CPUSet)
 
+		// Test GetHugepages()
+		glog.Infof("CALL netlib.GetHugepages:")
+		hugepagesResponse, err := netlib.GetHugepages()
+		if err != nil {
+			glog.Infof("Error calling netlib.GetHugepages: %v", err)
+		} else {
+			glog.Infof("netlib.GetHugepages Response:")
+			fmt.Printf("| HugePage|: Request=%+v  Limit=%+v\n", hugepagesResponse.Request, hugepagesResponse.Limit)
+		}
+
+		// Test GetInterfaces()
 		glog.Infof("CALL netlib.GetInterfaces:")
 		ifaceResponse, err := netlib.GetInterfaces()
 		if err != nil {
