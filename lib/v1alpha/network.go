@@ -17,6 +17,7 @@ package apputil
 import (
 	"bufio"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/golang/glog"
@@ -25,10 +26,6 @@ import (
 	"github.com/openshift/app-netutil/pkg/networkstatus"
 	"github.com/openshift/app-netutil/pkg/types"
 	"github.com/openshift/app-netutil/pkg/userspace"
-)
-
-const (
-	filePathAnnotation = "/etc/podnetinfo/annotations"
 )
 
 //
@@ -44,10 +41,7 @@ func GetInterfaces() (*types.InterfaceResponse, error) {
 	response := &types.InterfaceResponse{}
 
 	// Open Annotations File
-	annotationPath := ""
-	if annotationPath == "" {
-		annotationPath = filePathAnnotation
-	}
+	annotationPath := filepath.Join(types.DownwardAPIMountPath, types.AnnotationsPath)
 	glog.Infof("GetInterfaces: Open %s", annotationPath)
 	file, err := os.Open(annotationPath)
 	if err != nil {
@@ -165,7 +159,7 @@ func GetInterfaces() (*types.InterfaceResponse, error) {
 			// If there are more "unknown" interface types than there are
 			// PCI interfaces not in the list, then mark the "default"
 			// interface as a host interface.
-			if ifaceData.NetworkStatus.Default && unknownCnt > len(pciAddressSlice){
+			if ifaceData.NetworkStatus.Default && unknownCnt > len(pciAddressSlice) {
 				ifaceData.DeviceType = types.INTERFACE_TYPE_HOST
 				unknownCnt--
 				glog.Infof("%s is the \"default\" interface, mark as \"%s\"",

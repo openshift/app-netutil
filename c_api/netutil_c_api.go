@@ -10,6 +10,11 @@ struct CPUResponse {
     char*    CPUSet;
 };
 
+struct HugepagesResponse {
+    int64_t  Request;
+    int64_t  Limit;
+};
+
 #define NETUTIL_ERRNO_SUCCESS 0
 #define NETUTIL_ERRNO_FAIL 1
 #define NETUTIL_ERRNO_SIZE_ERROR 2
@@ -101,7 +106,6 @@ struct InterfaceResponse {
 	struct InterfaceData *pIface;
 };
 
-
 */
 import "C"
 import "unsafe"
@@ -143,6 +147,20 @@ func GetCPUInfo(c_cpuResp *C.struct_CPUResponse) int64 {
 		return NETUTIL_ERRNO_SUCCESS
 	}
 	glog.Errorf("netlib.GetCPUInfo() err: %+v", err)
+	return NETUTIL_ERRNO_FAIL
+}
+
+//export GetHugepages
+func GetHugepages(c_hugepagesResp *C.struct_HugepagesResponse) int64 {
+	flag.Parse()
+	hugepagesRsp, err := netlib.GetHugepages()
+
+	if err == nil {
+		c_hugepagesResp.Request = C.long(hugepagesRsp.Request)
+		c_hugepagesResp.Limit = C.long(hugepagesRsp.Limit)
+		return NETUTIL_ERRNO_SUCCESS
+	}
+	glog.Errorf("netlib.GetHugepages() err: %+v", err)
 	return NETUTIL_ERRNO_FAIL
 }
 
