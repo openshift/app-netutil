@@ -63,7 +63,7 @@ func AppendInterfaceData(usrspData *UserspacePlugin, ifaceRsp *types.InterfaceRe
 		}
 
 		// Loop through existing list and determine is this interface has
-		// been discovered by some other means (like NetworkStatus from Multus)
+		// been discovered by some other means (like using NetworkStatus annotation)
 		for _, interfaceData := range ifaceRsp.Interface {
 			if interfaceData.IfName != "" &&
 				interfaceData.IfName == configData.IfName {
@@ -88,7 +88,7 @@ func AppendInterfaceData(usrspData *UserspacePlugin, ifaceRsp *types.InterfaceRe
 				},
 			}
 			// Convert the IPResult structure to the Network Struct used
-			// by app-netutil (based on Multus NetworkStatus)
+			// by app-netutil (based on NetworkStatus)
 			for _, ipconfig := range configData.IPResult.IPs {
 				if ipconfig.Version == "4" && ipconfig.Address.IP.To4() != nil {
 					ifaceData.Network.IPs = append(ifaceData.Network.IPs, ipconfig.Address.IP.String())

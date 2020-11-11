@@ -21,7 +21,7 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/openshift/app-netutil/pkg/multus"
+	"github.com/openshift/app-netutil/pkg/networkstatus"
 	"github.com/openshift/app-netutil/pkg/types"
 	"github.com/openshift/app-netutil/pkg/userspace"
 )
@@ -53,7 +53,7 @@ func GetInterfaces() (*types.InterfaceResponse, error) {
 
 	// Buffers to store unmarshalled data (from annotations
 	// or files) used by app-netutil
-	multusData := &multusplugin.MultusPlugin{}
+	netStatData := &networkstatus.NetStatusData{}
 	usrspData := &userplugin.UserspacePlugin{}
 
 	//
@@ -83,9 +83,9 @@ func GetInterfaces() (*types.InterfaceResponse, error) {
 				parts[1] = strings.Replace(string(parts[1]), " ", "", -1)
 				parts[1] = string(parts[1][1 : len(parts[1])-1])
 
-				// Parse any Mults Annotations. Values will be
-				// saved in multusData structure for later.
-				multusplugin.ParseAnnotations(parts[0], parts[1], multusData)
+				// Parse any NetworkStatus Annotations. Values will be
+				// saved in netStatData structure for later.
+				networkstatus.ParseAnnotations(parts[0], parts[1], netStatData)
 
 				// Parse any Userspace Annotations. Values will be
 				// saved in usrspData structure for later.
@@ -96,7 +96,7 @@ func GetInterfaces() (*types.InterfaceResponse, error) {
 
 	// Append any NetworkStatus collected data to the list
 	// of interfaces.
-	multusplugin.AppendInterfaceData(multusData, response)
+	networkstatus.AppendInterfaceData(netStatData, response)
 
 	// Append any Userspace collected data to the list
 	// of interfaces.

@@ -2,19 +2,19 @@
 // Copyright(c) 2019 Red Hat, Inc.
 
 //
-// This module reads and parses any Multus-CNI configuration
-// data provided to a container by the host. This module isolates
-// Multus-CNI specifics from the rest of the application.
+// This module reads and parses the NetworkStatus annotation
+// provided to a container by the host. This module isolates
+// Network Status specifics from the rest of the application.
 //
 
-package multusplugin
+package networkstatus
 
 import (
 	"encoding/json"
 
 	"github.com/golang/glog"
 
-	multus "gopkg.in/intel/multus-cni.v3/types"
+	nettypes "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 
 	"github.com/openshift/app-netutil/pkg/types"
 )
@@ -23,24 +23,24 @@ const (
 	annotKeyNetworkStatus = "k8s.v1.cni.cncf.io/networks-status"
 )
 
-type MultusPlugin struct {
-	networkStatusSlice []multus.NetworkStatus
+type NetStatusData struct {
+	networkStatusSlice []nettypes.NetworkStatus
 }
 
-func ParseAnnotations(annotKey string, annotValue string, multusData *MultusPlugin) {
-	// Parse the NetworkStatus added by Multus CNI
+func ParseAnnotations(annotKey string, annotValue string, netStatData *NetStatusData) {
+	// Parse the NetworkStatus annotation
 	if annotKey == annotKeyNetworkStatus {
-		if err := json.Unmarshal([]byte(annotValue), &multusData.networkStatusSlice); err != nil {
+		if err := json.Unmarshal([]byte(annotValue), &netStatData.networkStatusSlice); err != nil {
 			glog.Errorf("Error unmarshal \"%s\": %v", annotKeyNetworkStatus, err)
 		}
 	}
 }
 
-func AppendInterfaceData(multusData *MultusPlugin, ifaceRsp *types.InterfaceResponse) {
+func AppendInterfaceData(netStatData *NetStatusData, ifaceRsp *types.InterfaceResponse) {
 	var ifaceData *types.InterfaceData
 
-	glog.Infof("PRINT EACH NetworkStatus - len=%d", len(multusData.networkStatusSlice))
-	for _, status := range multusData.networkStatusSlice {
+	glog.Infof("PRINT EACH NetworkStatus - len=%d", len(netStatData.networkStatusSlice))
+	for _, status := range netStatData.networkStatusSlice {
 		ifaceData = nil
 
 		glog.Infof("  status:")
@@ -70,8 +70,6 @@ func AppendInterfaceData(multusData *MultusPlugin, ifaceRsp *types.InterfaceResp
 				Network: &types.NetworkData{
 					IPs:     status.IPs,
 					Mac:     status.Mac,
-					DNS:     status.DNS,
-					Gateway: status.Gateway,
 				},
 			}
 
