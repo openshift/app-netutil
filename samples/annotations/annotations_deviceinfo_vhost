@@ -1,0 +1,5 @@
+k8s.v1.cni.cncf.io/network-status="[{\n  \"name\": \"k8s-pod-network\",\n  \"ips\": [\n    \"172.16.34.200\"\n  ],\n  \"default\": true,\n  \"dns\": {}\n},{\n  \"name\": \"sriov-network2\",\n  \"interface\": \"net1\",\n  \"dns\": {}\n},{\n  \"name\": \"sriov-network3\",\n  \"interface\": \"net2\",\n  \"dns\": {}\n}]"
+k8s.v1.cni.cncf.io/networks="sriov-network2, sriov-network3"
+k8s.v1.cni.cncf.io/networks-status="[{\n  \"name\": \"k8s-pod-network\",\n  \"ips\": [\n    \"172.16.34.200\"\n  ],\n  \"default\": true,\n  \"dns\": {}\n},{\n  \"name\": \"sriov-network2\",\n  \"interface\": \"net1\",\n  \"dns\": {}\n},{\n  \"name\": \"sriov-network3\",\n  \"interface\": \"net2\",\n  \"dns\": {}\n}]"
+kubernetes.io/config.seen="2020-11-11T09:10:59.340162246-05:00"
+kubernetes.io/config.source="api"

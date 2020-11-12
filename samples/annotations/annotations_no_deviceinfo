@@ -1,0 +1,5 @@
+k8s.v1.cni.cncf.io/network-status="[{\n    \"name\": \"\",\n    \"interface\": \"eth0\",\n    \"ips\": [\n        \"10.244.0.25\"\n    ],\n    \"mac\": \"06:eb:7f:3a:48:85\",\n    \"default\": true,\n    \"dns\": {}\n},{\n    \"name\": \"default/sriov-net-a\",\n    \"interface\": \"net1\",\n    \"dns\": {}\n},{\n    \"name\": \"default/sriov-net-b\",\n    \"interface\": \"net2\",\n    \"dns\": {}\n}]"
+k8s.v1.cni.cncf.io/networks="sriov-net-a, sriov-net-b"
+k8s.v1.cni.cncf.io/networks-status="[{\n    \"name\": \"\",\n    \"interface\": \"eth0\",\n    \"ips\": [\n        \"10.244.0.25\"\n    ],\n    \"mac\": \"06:eb:7f:3a:48:85\",\n    \"default\": true,\n    \"dns\": {}\n},{\n    \"name\": \"default/sriov-net-a\",\n    \"interface\": \"net1\",\n    \"dns\": {}\n},{\n    \"name\": \"default/sriov-net-b\",\n    \"interface\": \"net2\",\n    \"dns\": {}\n}]"
+kubernetes.io/config.seen="2020-11-11T09:10:59.340162246-05:00"
+kubernetes.io/config.source="api"

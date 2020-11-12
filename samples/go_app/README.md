@@ -26,7 +26,7 @@ $ ./bin/go_app
 ```
 
 This application run a forever loop, calling the Network Utility Library
-and printing the results. Then slepping for 1 minute and repeating. Use
+and printing the results. Then sleeping for 1 minute and repeating. Use
 <CTRL>-C to exit.
 
 #### Debug Logs

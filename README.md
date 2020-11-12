@@ -233,7 +233,7 @@ For more details, see:
 The `dpdk-app-centos` image is a CentOS base image built with DPDK
 and includes the `app-netutil` library. The setup to run the image
 is more complicated and depends on if you are using vhost interfaces
-from something like a Userpace CNI or SR-IOV VFs from SR-IOV CNI.
+from something like a Userspace CNI or SR-IOV VFs from SR-IOV CNI.
 Below is the quick command to build the image, but it is recommended
 that additional README files are consulted for detailed setup
 instructions.

@@ -13,10 +13,9 @@ import (
 	"encoding/json"
 
 	"github.com/golang/glog"
-
 	"github.com/intel/userspace-cni-network-plugin/pkg/annotations"
 	usrsptypes "github.com/intel/userspace-cni-network-plugin/pkg/types"
-
+	nettypes "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	"github.com/openshift/app-netutil/pkg/types"
 )
 
@@ -54,6 +53,7 @@ func AppendInterfaceData(usrspData *UserspacePlugin, ifaceRsp *types.InterfaceRe
 	glog.Infof("PRINT EACH Userspace ConfigData")
 	for _, configData := range usrspData.configDataSlice {
 		ifaceData = nil
+		foundMatch := false
 
 		glog.Infof("  configData:")
 		glog.Infof("%v", configData)
@@ -65,11 +65,12 @@ func AppendInterfaceData(usrspData *UserspacePlugin, ifaceRsp *types.InterfaceRe
 		// Loop through existing list and determine is this interface has
 		// been discovered by some other means (like using NetworkStatus annotation)
 		for _, interfaceData := range ifaceRsp.Interface {
-			if interfaceData.IfName != "" &&
-				interfaceData.IfName == configData.IfName {
-
-				glog.Infof("  MATCH:")
+			glog.Infof("TEST: NetworkStatus.Interface=%s configData.IfName=%s", interfaceData.NetworkStatus.Interface, configData.IfName)
+			if interfaceData.NetworkStatus.Interface != "" &&
+				interfaceData.NetworkStatus.Interface == configData.IfName {
 				ifaceData = interfaceData
+				foundMatch = true
+				glog.Infof("  FOUND MATCH")
 				break
 			}
 		}
@@ -80,45 +81,69 @@ func AppendInterfaceData(usrspData *UserspacePlugin, ifaceRsp *types.InterfaceRe
 			glog.Infof("  NO MATCH: Create New Instance")
 
 			ifaceData = &types.InterfaceData{
-				IfName: configData.IfName,
-				Name:   configData.Name,
-				Type:   types.INTERFACE_TYPE_UNKNOWN,
-				Network: &types.NetworkData{
-					DNS: configData.IPResult.DNS,
+				DeviceType: types.INTERFACE_TYPE_UNKNOWN,
+				NetworkStatus: nettypes.NetworkStatus{
+					Name:      configData.Name,
+					Interface: configData.IfName,
+					Default:   false,
+					DNS: nettypes.DNS{
+						Nameservers: configData.IPResult.DNS.Nameservers,
+						Domain:      configData.IPResult.DNS.Domain,
+						Search:      configData.IPResult.DNS.Search,
+						Options:     configData.IPResult.DNS.Options,
+					},
 				},
 			}
-			// Convert the IPResult structure to the Network Struct used
-			// by app-netutil (based on NetworkStatus)
+
+			// Convert the IPResult structure to the NetworkStatus format
 			for _, ipconfig := range configData.IPResult.IPs {
 				if ipconfig.Version == "4" && ipconfig.Address.IP.To4() != nil {
-					ifaceData.Network.IPs = append(ifaceData.Network.IPs, ipconfig.Address.IP.String())
+					ifaceData.NetworkStatus.IPs = append(ifaceData.NetworkStatus.IPs, ipconfig.Address.IP.String())
 				}
 				if ipconfig.Version == "6" && ipconfig.Address.IP.To16() != nil {
-					ifaceData.Network.IPs = append(ifaceData.Network.IPs, ipconfig.Address.IP.String())
+					ifaceData.NetworkStatus.IPs = append(ifaceData.NetworkStatus.IPs, ipconfig.Address.IP.String())
 				}
 			}
-
-			ifaceRsp.Interface = append(ifaceRsp.Interface, ifaceData)
 		}
 
-		if ifaceData != nil {
+		// If the DeviceInfo data was not included in the NetworkStatus,
+		// then map the Userspace data to the DeviceInfo.
+		if ifaceData.NetworkStatus.DeviceInfo == nil {
 			if configData.Config.IfType == "vhostuser" {
-				ifaceData.Type = types.INTERFACE_TYPE_VHOST
-				ifaceData.Vhost = &types.VhostData{
-					Mode:       configData.Config.VhostConf.Mode,
-					Socketpath: usrspData.mappedDir + configData.Config.VhostConf.Socketfile,
+				ifaceData.NetworkStatus.DeviceInfo = &nettypes.DeviceInfo{
+					Type:    nettypes.DeviceInfoTypeVHostUser,
+					Version: nettypes.DeviceInfoVersion,
+					VhostUser: &nettypes.VhostDevice{
+						Mode: configData.Config.VhostConf.Mode,
+						Path: usrspData.mappedDir + configData.Config.VhostConf.Socketfile,
+					},
 				}
 			} else if configData.Config.IfType == "memif" {
-				ifaceData.Type = types.INTERFACE_TYPE_MEMIF
-				ifaceData.Memif = &types.MemifData{
-					Role:       configData.Config.MemifConf.Role,
-					Mode:       configData.Config.MemifConf.Mode,
-					Socketpath: usrspData.mappedDir + configData.Config.MemifConf.Socketfile,
+				ifaceData.NetworkStatus.DeviceInfo = &nettypes.DeviceInfo{
+					Type:    nettypes.DeviceInfoTypeMemif,
+					Version: nettypes.DeviceInfoVersion,
+					Memif: &nettypes.MemifDevice{
+						Role: configData.Config.MemifConf.Role,
+						Mode: configData.Config.MemifConf.Mode,
+						Path: usrspData.mappedDir + configData.Config.MemifConf.Socketfile,
+					},
 				}
 			} else {
-				ifaceData.Type = types.INTERFACE_TYPE_INVALID
-				glog.Warningf("Invalid type found for interface %s", ifaceData.IfName)
+				glog.Warningf("Invalid type found for interface %s", configData.IfName)
 			}
+
+			if ifaceData.NetworkStatus.DeviceInfo != nil {
+				ifaceData.DeviceType = ifaceData.NetworkStatus.DeviceInfo.Type
+				if !foundMatch {
+					ifaceRsp.Interface = append(ifaceRsp.Interface, ifaceData)
+				}
+			}
+		} else {
+			// DeviceInfo found in the NetworkStatus data. Currently
+			// don't try to reconcile data coming from two locations.
+			glog.Warningf("Userspace interface found in NetworkStatus: %s", configData.IfName)
+			glog.Infof("NetworkStatus Data: %v", ifaceData)
+			glog.Infof("Userspace Data: %v", configData)
 		}
 	}
 }

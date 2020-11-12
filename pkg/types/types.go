@@ -1,19 +1,12 @@
 package types
 
 import (
-	"net"
-
-	cnitypes "github.com/containernetworking/cni/pkg/types"
+	nettypes "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 )
 
 const (
-	INTERFACE_TYPE_ALL    = "all"
-	INTERFACE_TYPE_KERNEL = "kernel"
-	INTERFACE_TYPE_SRIOV  = "sr-iov"
-	INTERFACE_TYPE_VHOST  = "vhost"
-	INTERFACE_TYPE_MEMIF  = "memif"
-	INTERFACE_TYPE_VDPA   = "vDPA"
-
+	INTERFACE_TYPE_HOST    = "host"
+	INTERFACE_TYPE_SRIOV   = "sr-iov"
 	INTERFACE_TYPE_UNKNOWN = "unknown"
 	INTERFACE_TYPE_INVALID = "invalid"
 )
@@ -27,40 +20,11 @@ type InterfaceResponse struct {
 }
 
 type InterfaceData struct {
-	IfName  string       `json:"ifName,omitempty"` // IfName, from CNIArgs, if available
-	Name    string       `json:"name,omitempty"`   // Name from Network-Attachment-Definition, if available
-	Type    string       `json:"type,omitempty"`   // Of Type INTERFACE_TYPE_xxx
-	Network *NetworkData `json:"network,omitempty"`
-
-	// Per Interface Type Data
-	Sriov *SriovData `json:"sriov,omitempty"`
-	Memif *MemifData `json:"memif,omitempty"`
-	Vhost *VhostData `json:"vhost,omitempty"`
-	Vdpa  *VdpaData  `json:"vDPA,omitempty"`
-}
-
-type NetworkData struct {
-	IPs     []string     `json:"ips,omitempty"`
-	Mac     string       `json:"mac,omitempty"`
-	DNS     cnitypes.DNS `json:"dns,omitempty"`
-	Gateway []net.IP     `json:"default-route,omitempty"`
-}
-
-type SriovData struct {
-	PciAddress string `json:"pciAddress,omitempty"`
-}
-
-type VhostData struct {
-	Socketpath string `json:"socketpath,omitempty"` // Unix Socketfile for control neg.
-	Mode       string `json:"mode,omitempty"`       // Mode: client|server
-}
-
-type MemifData struct {
-	Socketpath string `json:"socketpath,omitempty"` // Unix Socketfile for control neg.
-	Role       string `json:"role,omitempty"`       // Role of memif: master|slave
-	Mode       string `json:"mode,omitempty"`       // Mode of memif: ip|ethernet|inject-punt
-}
-
-type VdpaData struct {
-	// TBD
+	// DeviceType is similar to NetworkStatus.DeviceInfo.Type except:
+	// - Don't need to check for "NetworkStatus.DeviceInfo != nil" before using
+	// - Internally could be "unknown" or "invalid" while data is being processed
+	// - Not all DPs/CNIs support Device-Info-Spec, so NetworkStatus.DeviceInfo may be nil
+	// - For NetworkStatus.DeviceInfo.Type of "pci", DeviceType may be "host" or "sriov"
+	DeviceType    string                 `json:"device-type,omitempty"`
+	NetworkStatus nettypes.NetworkStatus `json:"network-status,omitempty"`
 }

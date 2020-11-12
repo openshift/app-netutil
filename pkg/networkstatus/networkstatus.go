@@ -46,34 +46,19 @@ func AppendInterfaceData(netStatData *NetStatusData, ifaceRsp *types.InterfaceRe
 		glog.Infof("  status:")
 		glog.Infof("%v", status)
 
-		// Loop through existing list and determine is this interface has
-		// been discovered by some other means.
-		for _, interfaceData := range ifaceRsp.Interface {
-			if interfaceData.IfName != "" &&
-				interfaceData.IfName == status.Interface {
-
-				glog.Infof("  MATCH:")
-				ifaceData = interfaceData
-				break
-			}
+		// For efficiency, assume no interfaces have been added to list,
+		// so don't search existing list to make sure this interfaces has
+		// already been added.
+		ifaceData = &types.InterfaceData{
+			NetworkStatus: status,
 		}
 
-		// If current interface is not already in the list, then
-		// create a new instance and add it to the list.
-		if ifaceData == nil {
-			glog.Infof("  NO MATCH: Create New Instance")
-
-			ifaceData = &types.InterfaceData{
-				IfName: status.Interface,
-				Name:   status.Name,
-				Type:   types.INTERFACE_TYPE_UNKNOWN,
-				Network: &types.NetworkData{
-					IPs:     status.IPs,
-					Mac:     status.Mac,
-				},
-			}
-
-			ifaceRsp.Interface = append(ifaceRsp.Interface, ifaceData)
+		if ifaceData.NetworkStatus.DeviceInfo != nil {
+			ifaceData.DeviceType = ifaceData.NetworkStatus.DeviceInfo.Type
+		} else {
+			ifaceData.DeviceType = types.INTERFACE_TYPE_UNKNOWN
 		}
+
+		ifaceRsp.Interface = append(ifaceRsp.Interface, ifaceData)
 	}
 }
