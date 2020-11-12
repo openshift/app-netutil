@@ -20,11 +20,15 @@ spec:
     resources:
       requests:
         memory: 1Gi
+        hugepages-1Gi: 2Gi
+        #hugepages-2Mi: 100Mi
         #cpu: "4"
         intel.com/intel_sriov_dpdk_a: '1'
         intel.com/intel_sriov_dpdk_b: '1'
       limits:
+        memory: 1Gi
         hugepages-1Gi: 2Gi
+        #hugepages-2Mi: 100Mi
         #cpu: "4"
         intel.com/intel_sriov_dpdk_a: '1'
         intel.com/intel_sriov_dpdk_b: '1'

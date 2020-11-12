@@ -4,7 +4,7 @@
 
 
 # -------- Builder stage.
-FROM centos
+FROM centos:7
 MAINTAINER Billy McFall <bmcfall@redhat.com>
 
 #
@@ -102,7 +102,7 @@ RUN cp build/l3fwd /usr/bin/dpdk-app
 # -------- Import stage.
 # Docker 17.05 or higher
 # BEGIN
-FROM centos
+FROM centos:7
 COPY --from=0 /usr/bin/dpdk-app /usr/bin/dpdk-app
 COPY --from=0 /usr/bin/l2fwd /usr/bin/l2fwd
 COPY --from=0 /usr/bin/l3fwd /usr/bin/l3fwd
