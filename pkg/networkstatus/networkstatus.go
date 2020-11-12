@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	annotKeyNetworkStatus = "k8s.v1.cni.cncf.io/networks-status"
+	annotKeyNetworkStatus = "k8s.v1.cni.cncf.io/network-status"
 )
 
 type NetStatusData struct {
