@@ -1,4 +1,4 @@
-// Copyright 2017 Intel Corp.
+// Copyright 2017-2020 Intel Corp.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 package k8sclient
 
 import (
+	"context"
 	"net"
 	"os"
 
@@ -40,11 +41,14 @@ type k8sArgs struct {
 	K8S_POD_INFRA_CONTAINER_ID cnitypes.UnmarshallableString
 }
 
-
 func getK8sArgs(args *skel.CmdArgs) (*k8sArgs, error) {
 	k8sArgs := &k8sArgs{}
 
 	logging.Verbosef("getK8sArgs: %v", args)
+
+	if args == nil {
+		return nil, logging.Errorf("getK8sArgs: failed to get k8s args for CmdArgs set to %v", args)
+	}
 	err := cnitypes.LoadArgs(args.Args, k8sArgs)
 	if err != nil {
 		return nil, err
@@ -113,13 +117,12 @@ func GetPod(args *skel.CmdArgs,
 	}
 
 	if kubeClient == nil {
-		logging.Errorf("GetPod: No kubeClient: %v", err)
-		return nil, kubeClient, err
+		return nil, nil, logging.Errorf("GetPod: No kubeClient: %v", err)
 	}
 
 	// Get the pod info. If cannot get it, we use cached delegates
 	//pod, err := kubeClient.GetPod(string(k8sArgs.K8S_POD_NAMESPACE), string(k8sArgs.K8S_POD_NAME))
-	pod, err := kubeClient.CoreV1().Pods(string(k8sArgs.K8S_POD_NAMESPACE)).Get(string(k8sArgs.K8S_POD_NAME), metav1.GetOptions{})
+	pod, err := kubeClient.CoreV1().Pods(string(k8sArgs.K8S_POD_NAMESPACE)).Get(context.TODO(), string(k8sArgs.K8S_POD_NAME), metav1.GetOptions{})
 
 	if err != nil {
 		logging.Debugf("GetPod: Err in loading K8s cluster default network from pod annotation: %v, use cached delegates", err)
@@ -135,25 +138,29 @@ func WritePodAnnotation(kubeClient kubernetes.Interface, pod *v1.Pod) (*v1.Pod, 
 	var err error
 
 	if kubeClient == nil {
-		logging.Errorf("WritePodAnnotation: No kubeClient: %v", err)
-		return pod, err
+		return pod, logging.Errorf("WritePodAnnotation: No kubeClient: %v", err)
+	}
+	if pod == nil {
+		return pod, logging.Errorf("WritePodAnnotation: No pod: %v", err)
 	}
 
+	// Keep original pod info for log message in case of failure
+	origPod := pod
 	// Update the pod
 	pod = pod.DeepCopy()
 	if resultErr := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		if err != nil {
 			// Re-get the pod unless it's the first attempt to update
-			pod, err = kubeClient.CoreV1().Pods(pod.Namespace).Get(pod.Name, metav1.GetOptions{})
+			pod, err = kubeClient.CoreV1().Pods(pod.Namespace).Get(context.TODO(), pod.Name, metav1.GetOptions{})
 			if err != nil {
 				return err
 			}
 		}
 
-		pod, err = kubeClient.CoreV1().Pods(pod.Namespace).UpdateStatus(pod)
+		pod, err = kubeClient.CoreV1().Pods(pod.Namespace).UpdateStatus(context.TODO(), pod, metav1.UpdateOptions{})
 		return err
 	}); resultErr != nil {
-		return nil, logging.Errorf("status update failed for pod %s/%s: %v", pod.Namespace, pod.Name, resultErr)
+		return nil, logging.Errorf("status update failed for pod %s/%s: %v", origPod.Namespace, origPod.Name, resultErr)
 	}
 	return pod, nil
 }
