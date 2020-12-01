@@ -5,6 +5,10 @@
 *.so
 *.dylib
 
+# Vim temporary files.
+.*.swp
+.*.swo
+
 # Test binary, build with `go test -c`
 *.test
 
