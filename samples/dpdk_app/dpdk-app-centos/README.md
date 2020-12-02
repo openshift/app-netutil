@@ -1,6 +1,6 @@
 #  Docker Image: dpdk-app-centos
 This directory contains the files needed to build a DPDK based test image.
-This image is based on CentOS (latest) base image built with DPDK 19.08.
+This image is based on CentOS 7 base image built with DPDK 19.08.
 This image is intended to work with multiple CNIs that intend to tie into
 DPDK running in a container.
 
@@ -9,7 +9,7 @@ The SR-IOV Device Plugin detects and tracks the VFs associated with an
 SR-IOV PF. The SR-IOV CNI updates the VF as needed and the PCI Address
 associated with the VF is passed to the container via environmental
 variables. The container, like this one, boots up and reads the
-environmental variables (via the app-netuilt) and runs a DPDK application.
+environmental variables (via the app-netulit) and runs a DPDK application.
 
 ## Userspace CNI
 The Userspace CNI inconjunction with the OVS CNI Library (cniovs) or VPP
@@ -41,7 +41,7 @@ OR
 ## Reduce Image Size
 Multi-stage builds are a new feature requiring **Docker 17.05** or higher on
 the daemon and client. If multi-stage builds are NOT supported on your system,
-then comment out the lines between '# BEGIN' and '# END' in the Dockerfile:
+then comment out the lines between `# BEGIN` and `# END` in the Dockerfile:
 ```
 :
 
@@ -63,18 +63,18 @@ COPY --from=0 /usr/lib64/libnuma.so.1 /usr/lib64/libnuma.so.1
 # Docker Image Details
 This Docker Image is downloading DPDK (version 19.08 to get memif PMD)
 and building it. Once built, it changes into the DPDK `testpmd`
-directory (${DPDK_DIR}/app/test-pmd) and builds it. It then repeats
-for the DPDK `l2fwd` directory (${DPDK_DIR}/examples/l2fwd) and the
-the DPDK `l3fwd` directory (${DPDK_DIR}/examples/l3fwd).
+directory (`${DPDK_DIR}/app/test-pmd`) and builds it. It then repeats
+for the DPDK `l2fwd` directory (`${DPDK_DIR}/examples/l2fwd`) and the
+the DPDK `l3fwd` directory (`${DPDK_DIR}/examples/l3fwd`).
 
 `testpmd`, `l2fwd` and `l3fwd` are DPDK sample applications. `testpmd`
 and `l2fwd` performs Layer 2 switching and `l3fwd` performs Layer 3
 routing. All three applications are built with the `app-netutil` and
-copied into '/usr/bin/'. `l3fwd` is then also copied to '/usr/bin/' and
+copied into `/usr/bin/`. `l3fwd` is then also copied to `/usr/bin/` and
 renamed as `dpdk-app` (default option).
 
 Which DPDK sample application is run is controlled by an environmental
-variable (DPDK_SAMPLE_APP) set in the pod spec. If not set, the image
+variable (`DPDK_SAMPLE_APP`) set in the pod spec. If not set, the image
 defaults to using `dpdk-app`, which is mapped to `l3fwd`. See
 `sample/dpdk_app/sriov/sriov-pod-1.yaml` for an example of the environmental
 variable `DPDK_SAMPLE_APP` being used.
@@ -88,8 +88,8 @@ $ l3fwd -n 4 -l 1 --master-lcore 1 -w 0000:01:0a.6 -w 0000:01:02.1 -- -p 0x3 -P 
 ```
 
 This Docker image is tweaking this a little. Before `l3fwd` is built, the
-main.c file (contains main()) is updated using 'sed'. See
-'l3fwd_substitute.sh'.
+main.c file (contains `main()`) is updated using `sed`. See
+`l3fwd_substitute.sh`.
 
 **NOTE:** If a different version of DPDK is needed or used, this script and
 text file may need to be synchronized with the updated version. 
@@ -130,34 +130,33 @@ Run `dpdk-app` with no parameters, and it will be as if it is called
 as the container is started. It also prints out the generated parameter
 list, which include the dynamic socketfile path:
 ```
-sh-4.2# dpdk-app 
+sh-4.2# dpdk-app
 ENTER dpdk-app:
  argc=1
  dpdk-app
   cpuRsp.CPUSet = 0-63
+  Hugepage: Request = 2048 Limit = 2048  Using = 1024
   Interface[0]:
-    IfName="eth0"  Name="cbr0"  Type=unknown
-    MAC="ce:21:40:2a:02:9e"  IP="10.244.0.46"
+    DeviceType=host  Interface="eth0"
+    MAC="66:34:b2:6b:84:e0"  IP="10.244.0.52"
   Interface[1]:
-    IfName="net1"  Name="sriov-network-a"  Type=SR-IOV
-    MAC=""
-    PCIAddress=0000:01:0a.6
+    DeviceType=SR-IOV  Name="default/sriov-net-a"  Interface="net1"
+    Type=PCI  PCIAddress=0000:01:0a.1
   Interface[2]:
-    IfName="net2"  Name="sriov-network-b"  Type=SR-IOV
-    MAC=""
-    PCIAddress=0000:01:02.1
- myArgc=15
- dpdk-app -n 4 -l 1 --master-lcore 1 -w 0000:01:0a.6 -w 0000:01:02.1 -- -p 0x3 -P --config="(0,0,1),(1,0,1)" --parse-ptype
+    DeviceType=SR-IOV  Name="default/sriov-net-b"  Interface="net2"
+    Type=PCI  PCIAddress=0000:01:02.2
+ myArgc=17
+ dpdk-app -m 1024 -n 4 -l 1 --master-lcore 1 -w 0000:01:0a.1 -w 0000:01:02.2 -- -p 0x3 -P --config="(0,0,1),(1,0,1)" --parse-ptype
 EAL: Detected 64 lcore(s)
 EAL: Detected 2 NUMA nodes
 EAL: Multi-process socket /var/run/dpdk/rte/mp_socket
 :
 ```
 
-Then 'CTRL-C' to exit and re-run `dpdk-app` with input parameters
+Then `\<CTRL-C\>` to exit and re-run `dpdk-app` with input parameters
 modified as needed:
 ```
-dpdk-app -n 4 -l 11-13 --master-lcore 11 -w 0000:01:0a.6 -w 0000:01:02.1 -- -p 0x3 -P --config="(0,0,12),(1,0,13)" --parse-ptype
+dpdk-app -m 1024 -n 4 -l 1 --master-lcore 1 -w 0000:01:0a.1 -w 0000:01:02.2 -- -p 0x3 -P --config="(0,0,1),(1,0,1)" --parse-ptype
 ```
 
 The output from running `dpdk-app`' in the container is described here. The
@@ -174,31 +173,30 @@ ENTER dpdk-app:
 ```
 
 The next set of output come from `app-netutil` and indicate what
-data it has collected from the enviromental variables and
+data it has collected from the environment variables and
 annotations. 
 ```
   cpuRsp.CPUSet = 0-63
+  Hugepage: Request = 2048 Limit = 2048  Using = 1024
   Interface[0]:
-    IfName="eth0"  Name="cbr0"  Type=unknown
-    MAC="ce:21:40:2a:02:9e"  IP="10.244.0.46"
+    DeviceType=host  Interface="eth0"
+    MAC="66:34:b2:6b:84:e0"  IP="10.244.0.52"
   Interface[1]:
-    IfName="net1"  Name="sriov-network-a"  Type=SR-IOV
-    MAC=""
-    PCIAddress=0000:01:0a.6
+    DeviceType=SR-IOV  Name="default/sriov-net-a"  Interface="net1"
+    Type=PCI  PCIAddress=0000:01:0a.1
   Interface[2]:
-    IfName="net2"  Name="sriov-network-b"  Type=SR-IOV
-    MAC=""
-    PCIAddress=0000:01:02.1
+    DeviceType=SR-IOV  Name="default/sriov-net-b"  Interface="net2"
+    Type=PCI  PCIAddress=0000:01:02.2
 ```
 
 The next set of output indicated how `dpdk-app` is called with
 the set of parameters printed. This can be copied and rerun with
-updates as needed. But the dynamic data, such as PC Address of
+updates as needed. But the dynamic data, such as PCI Address of
 SR-IOV interfaces, or vhost socketfiles are printed and can be
 leveraged on subsequent runs.
 ```
  myArgc=15
- dpdk-app -n 4 -l 1 --master-lcore 1 -w 0000:01:0a.6 -w 0000:01:02.1 -- -p 0x3 -P --config="(0,0,1),(1,0,1)" --parse-ptype
+ dpdk-app -m 1024 -n 4 -l 1 --master-lcore 1 -w 0000:01:0a.1 -w 0000:01:02.2 -- -p 0x3 -P --config="(0,0,1),(1,0,1)" --parse-ptype
 ```
 
 The remaining output is from DPDK.

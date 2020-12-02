@@ -153,6 +153,99 @@ If needed, ‘exec’ into the container to customize DPDK application:
 kubectl exec -it sriov-pod-1 -- sh
 ```
 
+### Exposing Hugepage Allocation in Container
+In Kubernetes 1.20, an alpha feature was added to expose the requested
+hugepages to the container via the Downward API. Being alpha, this
+feature is disabled in Kubernetes by default. If enabled when Kubernetes
+is deployed via `FEATURE_GATES="DownwardAPIHugePages=true"`, then those
+values can be used by the container by requesting the fields in Pod Spec.
+To manually update the Pod Spec, uncomment the 1G or 2M Hugepage section
+in [sriov-pod-1.yaml](sriov-pod-1.yaml):
+```
+$ vi sriov-pod-1.yaml
+:
+        # Exposing Hugepages via Downward API is an alpha feature in
+        # Kubernetes 1.20. If K8s is greater than or equal to 1.20 and
+        # and Feature Gate is enabled (FEATURE_GATES="DownwardAPIHugePages=true"),
+        # then uncomment the 1G or 2M Hugepage sections below.
+        #
+        # 1G Hugepages
+        - path: "hugepages_request"
+          resourceFieldRef:
+            containerName: sriov-example
+            resource: requests.hugepages-1Gi
+            divisor: 1Mi
+        - path: "hugepages_limit"
+          resourceFieldRef:
+            containerName: sriov-example
+            resource: limits.hugepages-1Gi
+            divisor: 1Mi
+        #
+        # 2M Hugepages
+        #- path: "hugepages_request"
+        #  resourceFieldRef:
+        #    containerName: sriov-example
+        #    resource: requests.hugepages-2Mi
+        #    divisor: 1Mi
+        #- path: "hugepages_limit"
+        #  resourceFieldRef:
+        #    containerName: sriov-example
+        #    resource: limits.hugepages-2Mi
+        #    divisor: 1Mi
+:
+```
+
+The other option is to use
+[network-resources-injector](https://github.com/k8snetworkplumbingwg/network-resources-injector)
+to dynamically inject the Downward API settings into the Pod Spec.
+[sriov-pod-nri-1.yaml](sriov-pod-nri-1.yaml) is a copy of
+[sriov-pod-1.yaml](sriov-pod-1.yaml) with all the Downward API settings
+commented out.
+
+Sample commands to build a `network-resources-injector` image:
+```
+cd $GOPATH
+go get github.com/intel/network-resources-injector
+cd $GOPATH/src/github.com/intel/network-resources-injector
+make image
+```
+
+For a quick deployment, add `--insecure` and `--injectHugepageDownApi`
+as follows:
+```
+$ git diff deployments/server.yaml
+diff --git a/deployments/server.yaml b/deployments/server.yaml
+index 80c1340..dd0cafd 100644
+--- a/deployments/server.yaml
++++ b/deployments/server.yaml
+@@ -33,6 +33,8 @@ spec:
+     - -tls-private-key-file=/etc/tls/tls.key
+     - -tls-cert-file=/etc/tls/tls.crt
+     - -logtostderr
++    - --insecure
++    - --injectHugepageDownApi
+     securityContext:
+       runAsUser: 10000
+       runAsGroup: 10000
+```
+
+Then deploy `network-resources-injector` image:
+```
+kubectl apply -f deployments/auth.yaml -f deployments/server.yaml
+
+```
+
+Use the following command to start the DPDK based container using
+SR-IOV Interfaces:
+```
+kubectl create -f sriov-pod-nri-1.yaml
+```
+
+To tear down `network-resources-injector` image:
+```
+kubectl delete -f deployments/auth.yaml -f deployments/server.yaml
+```
+
 ## Test Generator
 By default, the DPDK based container ‘dpdk-app-centos’ is running the DPDK
 ‘l3fwd’ sample application (see https://doc.dpdk.org/guides/sample_app_ug/l3_forward.html).

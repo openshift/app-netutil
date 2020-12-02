@@ -20,46 +20,44 @@ This builds the GO library as a `.so` file and a C header file under the `bin/`
 directory. The sample C application then includes the C header file and the
 application binary called `c_sample` is built under `bin/` directory.
 
-### Set LD_LIBRARY_PATH
-Before testing, the application needs to know where the shared library is located.
-Either copy the `.so` file to a common location (i.e. `/usr/lib/`) or set
-`LD_LIBRARY_PATH`:
-```
-$ echo $LD_LIBRARY_PATH
-
-$ export LD_LIBRARY_PATH=$PWD/bin:$LD_LIBRARY_PATH
-```
-
-Note: Printed the original value of `LD_LIBRARY_PATH` so it can be reset later if
-desired. Use the following to clear out:
-```
-$ unset LD_LIBRARY_PATH
-```
-
 ### Test
+Before testing, the application needs to know where the shared library is located.
+Either copy the `.so` file to a common location (i.e. `/usr/lib/`) or pass the
+`LD_LIBRARY_PATH` environment variable via the command line.
+
 Run the application binary:
 ```
-$ ./bin/c_sample
+$ LD_LIBRARY_PATH=$PWD/bin:$LD_LIBRARY_PATH ./bin/c_sample
 ```
 
 #### Run locally
 If the application is not actually running in a container where annotations have been
 exposed, run the following to copy a sample annotation file onto the system. There are
 a couple of examples, so choose one that suits your testing. Make sure to name the
-file 'annotations' in the '/etc/podnetinfo/' directory.
+file `annotations` in the `/etc/podnetinfo/` directory.
 ```
 $ sudo mkdir -p /etc/podnetinfo/
-$ sudo cp samples/annotations/annotations_all /etc/podnetinfo/annotations
+$ sudo cp samples/annotations/annotations_deviceinfo_pci /etc/podnetinfo/annotations
 ```
 
 SR-IOV exposes the PCI Addresses of the VF to the container using an
 environmental variable. If the application is not actually running in a
-container where the SR-IOV environmental variables have been created, run
-the following to set a sample environmental variable in the session:
+container where the SR-IOV environmental variables have been created, pass
+them in through the command line. If the `annotations` file is using the
+`device-info` field in the `network-status`, then make sure the PCI values
+match.
 ```
-$ export PCIDEVICE_INTEL_COM_SRIOV=0000:03:02.1,0000:03:04.3
-$ echo $PCIDEVICE_INTEL_COM_SRIOV
-0000:03:02.1,0000:03:04.3
+$ LD_LIBRARY_PATH=$PWD/bin:$LD_LIBRARY_PATH PCIDEVICE_INTEL_COM_SRIOV=0000:01:02.5,0000:01:0a.4 ./bin/c_sample
+```
+
+#### Hugepage Requests and Limits
+To test the hugepage request and limit are being provided to a container via
+via the Downward API, the values need to be provided in the associated files.
+If the application is not actually running in a container, then the files
+can be created manually:
+```
+sudo sh -c 'echo "1024" >>/etc/podnetinfo/hugepages_request'
+sudo sh -c 'echo "1024" >>/etc/podnetinfo/hugepages_limit'
 ```
 
 ### Clean up
