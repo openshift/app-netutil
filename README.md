@@ -37,20 +37,18 @@ Additional Information:
 * [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## APIs
-Currently there are two API methods implemented:
+Currently there are three API methods implemented:
 * `GetCPUInfo()`
   * This function determines which CPUs are available to the container
   and returns the list to the caller.
+* `GetHugepages()`
+  * This function determines the amount of hugepage memory available to
+  the container and returns the values to the caller.
 * `GetInterfaces()`
   * This function determines the set of interfaces in the container and
   returns the list, along with the interface type and type specific data.
 
 There is a GO and C version of each of these functions.
-
-> Note: `--socket-mem` is usually used in DPDK application to specify how
-much memory to allocate from hugepages on specific sockets. To get how many
-hugepages are available in container, a new hugepage API will be supported
-once hugepage is supported in downward API via [this PR](https://github.com/kubernetes/kubernetes/pull/86102)
 
 ### GO APIs
 
@@ -99,20 +97,17 @@ This builds application binary called `go_app` under `bin/` dir.
 
 2. Run:
 ```
-$ ./bin/go_app 
+$ PCIDEVICE_INTEL_COM_SRIOV=0000:01:02.5,0000:01:0a.4 ./bin/go_app
 | CPU     |: 0-63
-| 0       |: IfName=  Name=cbr0  Type=kernel
-|         |:   &{IPs:[10.244.1.32] Mac: Default:true DNS:{Nameservers:[] Domain: Search:[] Options:[]}}
-| 1       |: IfName=net1  Name=userspace-ovs-net-1  Type=vhost
-|         |:   &{IPs:[10.56.217.166] Mac: Default:false DNS:{Nameservers:[] Domain: Search:[] Options:[]}}
-|         |:   Mode=client  Socketpath=/var/lib/cni/usrspcni/3d9fc3b7545d-net1
-| 2       |: IfName=net2  Name=userspace-ovs-net-2  Type=vhost
-|         |:   &{IPs:[10.77.217.154] Mac: Default:false DNS:{Nameservers:[] Domain: Search:[] Options:[]}}
-|         |:   Mode=client  Socketpath=/var/lib/cni/usrspcni/3d9fc3b7545d-net2
-| 3       |: IfName=net3  Name=sriov-network  Type=sr-iov
-|         |:   &{IPs:[10.56.217.90] Mac:da:18:1d:eb:ef:f2 Default:false DNS:{Nameservers:[] Domain: Search:[] Options:[]}}
-| 4       |: IfName=net4  Name=sriov-network  Type=sr-iov
-|         |:   &{IPs:[10.56.217.91] Mac:fa:32:38:0e:b5:94 Default:false DNS:{Nameservers:[] Domain: Search:[] Options:[]}}
+| HugePage|: Request=1024  Limit=1024
+| 0       |: IfName=eth0  DeviceType=host  Network=  Default=true
+|         |:   MAC=06:eb:7f:3a:48:85  IPs=[10.244.0.25]  DNS={Nameservers:[] Domain: Search:[] Options:[]}
+| 1       |: IfName=net1  DeviceType=sr-iov  Network=default/sriov-net-a  Default=false
+|         |:   MAC=  IPs=[]  DNS={Nameservers:[] Domain: Search:[] Options:[]}
+|         |:   pci  1.0.0  PCI=0000:01:02.5  PF=  Vhostnet=  RdmaDevice=
+| 2       |: IfName=net2  DeviceType=sr-iov  Network=default/sriov-net-b  Default=false
+|         |:   MAC=  IPs=[]  DNS={Nameservers:[] Domain: Search:[] Options:[]}
+|         |:   pci  1.0.0  PCI=0000:01:0a.4  PF=  Vhostnet=  RdmaDevice=
 
 <CTRL>-C
 ```
@@ -135,37 +130,30 @@ For more details, see:
 $ make c_sample
 ```
 This builds application binary called `c_sample` under `bin/`
-directory. the `bin\` directory also contains the C header file
+directory. The `bin/` directory also contains the C header file
 `libnetutil_api.h`  and shared library `libnetutil_api.so` needed
 to build the C APP.
 
 2. Run:
 ```
-$ export LD_LIBRARY_PATH=$PWD/bin:$LD_LIBRARY_PATH
-$ ./bin/c_sample 
+$ PCIDEVICE_INTEL_COM_SRIOV=0000:01:02.5,0000:01:0a.4 \
+  LD_LIBRARY_PATH=$PWD/bin:$LD_LIBRARY_PATH \
+  ./bin/c_sample
 Starting sample C application.
 Call NetUtil GetCPUInfo():
   cpuRsp.CPUSet = 0-63
+Call NetUtil GetHugepages():
+  Request = 1024  Limit = 1024
 Call NetUtil GetInterfaces():
   Interface[0]:
-    IfName=""  Name="cbr0"  Type=unknown
-    MAC=""  IP="10.244.1.32"
+    DeviceType=host  Interface="eth0"
+    MAC="06:eb:7f:3a:48:85"  IP="10.244.0.25"
   Interface[1]:
-    IfName="net1"  Name="userspace-ovs-net-1"  Type=vHost
-    Mode=client  Socketpath="/var/lib/cni/usrspcni/3d9fc3b7545d-net1"
-    MAC=""  IP="10.56.217.166"
+    DeviceType=SR-IOV  Name="default/sriov-net-a"  Interface="net1"
+    Type=PCI  PCIAddress=0000:01:02.5
   Interface[2]:
-    IfName="net2"  Name="userspace-ovs-net-2"  Type=vHost
-    Mode=client  Socketpath="/var/lib/cni/usrspcni/3d9fc3b7545d-net2"
-    MAC=""  IP="10.77.217.154"
-  Interface[3]:
-    IfName="net3"  Name="sriov-network"  Type=SR-IOV
-  
-    MAC="da:18:1d:eb:ef:f2"  IP="10.56.217.90"
-  Interface[4]:
-    IfName="net4"  Name="sriov-network"  Type=SR-IOV
-  
-    MAC="fa:32:38:0e:b5:94"  IP="10.56.217.91"
+    DeviceType=SR-IOV  Name="default/sriov-net-b"  Interface="net2"
+    Type=PCI  PCIAddress=0000:01:0a.4
 ```
 
 3. Clean up:
@@ -196,30 +184,56 @@ $ kubectl create -f samples/testpod/pod.yaml
 3. Check for pod logs:
 ```
 $ kubectl logs testpod
-
-I0710 08:07:16.902139       1 app_sample.go:14] starting sample application
-I0710 08:07:16.903046       1 resource.go:21] getting cpuset from path: /proc/1/root/sys/fs/cgroup/cpuset/cpuset.cpus
-I0710 08:07:16.903574       1 app_sample.go:21] netlib.GetCPUInfo Response: 0-35
-I0710 08:07:16.903599       1 resource.go:32] getting environment variables from path: /proc/1/environ
-I0710 08:07:16.903669       1 app_sample.go:27] netlib.GetEnv Response:
-| KUBERNETES_PORT_443_TCP_PROTO|: tcp
-| KUBERNETES_PORT_443_TCP_PORT|: 443
-| INSTALL_PKGS             |: golang
-| PATH                     |: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-| HOSTNAME                 |: testpod
-| KUBERNETES_PORT_443_TCP  |: tcp://10.96.0.1:443
-| KUBERNETES_SERVICE_HOST  |: 10.96.0.1
-| KUBERNETES_SERVICE_PORT  |: 443
-| container                |: docker
-| HOME                     |: /root
-| KUBERNETES_SERVICE_PORT_HTTPS|: 443
-| KUBERNETES_PORT          |: tcp://10.96.0.1:443
-| KUBERNETES_PORT_443_TCP_ADDR|: 10.96.0.1
-I0710 08:07:16.903756       1 network.go:18] getting network status from path: /etc/podnetinfo/annotations
-I0710 08:07:16.904215       1 app_sample.go:36] netlib.GetNetworkStatus Response:
-| 0                        |: &{Name: Interface: IPs:[10.96.1.157] Mac:}
+I1202 18:47:09.067139       1 app_sample.go:16] starting sample application
+I1202 18:47:09.069655       1 app_sample.go:20] CALL netlib.GetCPUInfo:
+I1202 18:47:09.070542       1 resource.go:27] getting cpuset from path: /proc/1/root/sys/fs/cgroup/cpuset/cpuset.cpus
+| CPU     |: 0-63
+I1202 18:47:09.071110       1 app_sample.go:26] netlib.GetCPUInfo Response:
+I1202 18:47:09.071126       1 app_sample.go:30] CALL netlib.GetHugepages:
+I1202 18:47:09.071149       1 hugepages.go:22] GetHugepages: Open /etc/podnetinfo/hugepages_request
+I1202 18:47:09.071349       1 hugepages.go:25] Error getting /etc/podnetinfo/hugepages_request info: open /etc/podnetinfo/hugepages_request: no such file or directory
+I1202 18:47:09.071363       1 hugepages.go:35] GetHugepages: Open /etc/podnetinfo/hugepages_limit
+I1202 18:47:09.071390       1 hugepages.go:38] Error getting /etc/podnetinfo/hugepages_limit info: open /etc/podnetinfo/hugepages_limit: no such file or directory
+I1202 18:47:09.071404       1 app_sample.go:33] Error calling netlib.GetHugepages: open /etc/podnetinfo/hugepages_request: no such file or directory
+I1202 18:47:09.071418       1 app_sample.go:40] CALL netlib.GetInterfaces:
+I1202 18:47:09.071424       1 network.go:39] GetInterfaces: ENTER
+I1202 18:47:09.071433       1 network.go:45] GetInterfaces: Open /etc/podnetinfo/annotations
+I1202 18:47:09.071821       1 network.go:68]   s-k8s.v1.cni.cncf.io/network-status="[{\n    \"name\": \"\",\n    \"interface\": \"eth0\",\n    \"ips\": [\n        \"10.244.0.57\"\n    ],\n    \"mac\": \"82:33:bb:68:3a:3c\",\n    \"default\": true,\n    \"dns\": {}\n}]"
+I1202 18:47:09.071832       1 network.go:72]   PartsLen-2
+I1202 18:47:09.071843       1 network.go:74]   parts[0]-k8s.v1.cni.cncf.io/network-status
+I1202 18:47:09.072035       1 network.go:68]   s-k8s.v1.cni.cncf.io/networks-status="[{\n    \"name\": \"\",\n    \"interface\": \"eth0\",\n    \"ips\": [\n        \"10.244.0.57\"\n    ],\n    \"mac\": \"82:33:bb:68:3a:3c\",\n    \"default\": true,\n    \"dns\": {}\n}]"
+I1202 18:47:09.072047       1 network.go:72]   PartsLen-2
+I1202 18:47:09.072054       1 network.go:74]   parts[0]-k8s.v1.cni.cncf.io/networks-status
+I1202 18:47:09.072067       1 network.go:68]   s-kubernetes.io/config.seen="2020-12-02T13:46:08.010504651-05:00"
+I1202 18:47:09.072075       1 network.go:72]   PartsLen-2
+I1202 18:47:09.072082       1 network.go:74]   parts[0]-kubernetes.io/config.seen
+I1202 18:47:09.072090       1 network.go:68]   s-kubernetes.io/config.source="api"
+I1202 18:47:09.072097       1 network.go:72]   PartsLen-2
+I1202 18:47:09.072105       1 network.go:74]   parts[0]-kubernetes.io/config.source
+I1202 18:47:09.072111       1 networkstatus.go:42] PRINT EACH NetworkStatus - len=1
+I1202 18:47:09.072118       1 networkstatus.go:46]   status:
+I1202 18:47:09.072126       1 networkstatus.go:47] { eth0 [10.244.0.57] 82:33:bb:68:3a:3c true {[]  [] []} <nil>}
+I1202 18:47:09.072162       1 userspace.go:49] PRINT EACH Userspace MappedDir
+I1202 18:47:09.072166       1 userspace.go:50]   usrspMappedDir:
+I1202 18:47:09.072171       1 userspace.go:51] 
+I1202 18:47:09.072176       1 userspace.go:53] PRINT EACH Userspace ConfigData
+I1202 18:47:09.072183       1 network.go:112] PROCESS ENV:
+I1202 18:47:09.072190       1 resource.go:38] getting environment variables from path: /proc/1/environ
+I1202 18:47:09.072232       1 network.go:165] eth0 is the "default" interface, mark as "host"
+I1202 18:47:09.072246       1 network.go:221] RESPONSE:
+I1202 18:47:09.072258       1 network.go:223] &{host { eth0 [10.244.0.57] 82:33:bb:68:3a:3c true {[]  [] []} <nil>}}
+I1202 18:47:09.072280       1 app_sample.go:46] netlib.GetInterfaces Response:
+| 0       |: IfName=eth0  DeviceType=host  Network=  Default=true
+|         |:   MAC=82:33:bb:68:3a:3c  IPs=[10.244.0.57]  DNS={Nameservers:[] Domain: Search:[] Options:[]}
 ...
 ```
+
+> NOTE: If the hugepage Downward API is not included in the Pod Spec, which
+is the case for [samples/testpod/pod.yaml](samples/testpod/pod.yaml), then
+the hugepage annotation files will not exist and hugepage data will not be
+retrieved. The hugepage Downward API requires Kubernetes 1.20 or greater and
+the feature gate to be enable.
+
 4. Delete application pod:
 ```
 $ kubectl delete -f deployments/pod.yaml
