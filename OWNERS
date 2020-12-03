@@ -6,6 +6,7 @@ reviewers:
   - fepan
   - s1061123
   - pliurh
+  - tfherbert
 approvers:
   - zshi-redhat
   - vpickard
@@ -14,3 +15,4 @@ approvers:
   - fepan
   - s1061123
   - pliurh
+  - tfherbert
