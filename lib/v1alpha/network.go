@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+	nritypes "github.com/intel/network-resources-injector/pkg/types"
 	nettypes "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 
 	"github.com/openshift/app-netutil/pkg/networkstatus"
@@ -41,7 +42,7 @@ func GetInterfaces() (*types.InterfaceResponse, error) {
 	response := &types.InterfaceResponse{}
 
 	// Open Annotations File
-	annotationPath := filepath.Join(types.DownwardAPIMountPath, types.AnnotationsPath)
+	annotationPath := filepath.Join(nritypes.DownwardAPIMountPath, nritypes.AnnotationsPath)
 	glog.Infof("GetInterfaces: Open %s", annotationPath)
 	file, err := os.Open(annotationPath)
 	if err != nil {

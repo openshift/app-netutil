@@ -33,12 +33,3 @@ type InterfaceData struct {
 	DeviceType    string                 `json:"device-type,omitempty"`
 	NetworkStatus nettypes.NetworkStatus `json:"network-status,omitempty"`
 }
-
-// Temporary - Use from network-resources-injector once PR merged.
-const (
-	DownwardAPIMountPath = "/etc/podnetinfo"
-	AnnotationsPath      = "annotations"
-	LabelsPath           = "labels"
-	HugepagesRequestPath = "hugepages_request"
-	HugepagesLimitPath   = "hugepages_limit"
-)

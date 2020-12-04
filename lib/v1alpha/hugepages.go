@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/golang/glog"
+	nritypes "github.com/intel/network-resources-injector/pkg/types"
 
 	"github.com/openshift/app-netutil/pkg/types"
 )
@@ -18,7 +19,7 @@ func GetHugepages() (*types.HugepagesResponse, error) {
 	var request int64
 	var limit int64
 
-	reqPath := filepath.Join(types.DownwardAPIMountPath, types.HugepagesRequestPath)
+	reqPath := filepath.Join(nritypes.DownwardAPIMountPath, nritypes.Hugepages1GRequestPath)
 	glog.Infof("GetHugepages: Open %s", reqPath)
 	requestStr, reqErr := ioutil.ReadFile(reqPath)
 	if reqErr != nil {
@@ -31,7 +32,7 @@ func GetHugepages() (*types.HugepagesResponse, error) {
 		}
 	}
 
-	limPath := filepath.Join(types.DownwardAPIMountPath, types.HugepagesLimitPath)
+	limPath := filepath.Join(nritypes.DownwardAPIMountPath, nritypes.Hugepages1GLimitPath)
 	glog.Infof("GetHugepages: Open %s", limPath)
 	limitStr, limErr := ioutil.ReadFile(limPath)
 	if limErr != nil {
