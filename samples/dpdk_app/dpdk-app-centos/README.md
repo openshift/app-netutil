@@ -135,7 +135,9 @@ ENTER dpdk-app:
  argc=1
  dpdk-app
   cpuRsp.CPUSet = 0-63
-  Hugepage: Request = 2048 Limit = 2048  Using = 1024
+  MyContainerName=sriov-example
+  Hugepages[0]:
+    ContainerName=sriov-example  Request: 1G=2048 2M=0 Ukn=0  Limit: 1G=2048 2M=0 Ukn=0
   Interface[0]:
     DeviceType=host  Interface="eth0"
     MAC="66:34:b2:6b:84:e0"  IP="10.244.0.52"
@@ -177,7 +179,9 @@ data it has collected from the environment variables and
 annotations. 
 ```
   cpuRsp.CPUSet = 0-63
-  Hugepage: Request = 2048 Limit = 2048  Using = 1024
+  MyContainerName=sriov-example
+  Hugepages[0]:
+    ContainerName=sriov-example  Request: 1G=2048 2M=0 Ukn=0  Limit: 1G=2048 2M=0 Ukn=0
   Interface[0]:
     DeviceType=host  Interface="eth0"
     MAC="66:34:b2:6b:84:e0"  IP="10.244.0.52"

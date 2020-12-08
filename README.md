@@ -43,7 +43,7 @@ Currently there are three API methods implemented:
   and returns the list to the caller.
 * `GetHugepages()`
   * This function determines the amount of hugepage memory available to
-  the container and returns the values to the caller.
+  each container and returns the values to the caller.
 * `GetInterfaces()`
   * This function determines the set of interfaces in the container and
   returns the list, along with the interface type and type specific data.
@@ -98,8 +98,10 @@ This builds application binary called `go_app` under `bin/` dir.
 2. Run:
 ```
 $ PCIDEVICE_INTEL_COM_SRIOV=0000:01:02.5,0000:01:0a.4 ./bin/go_app
-| CPU     |: 0-63
-| HugePage|: Request=1024  Limit=1024
+|CPU      |: 0-63
+|HugePage |: MyContainerName=sriov-example
+| 0       |: ContainerName=sriov-example  Request 1G=0 2M=0 Ukn=1024  Limit 1G=0 2M=0 Ukn=1024
+|Iface    |:
 | 0       |: IfName=eth0  DeviceType=host  Network=  Default=true
 |         |:   MAC=06:eb:7f:3a:48:85  IPs=[10.244.0.25]  DNS={Nameservers:[] Domain: Search:[] Options:[]}
 | 1       |: IfName=net1  DeviceType=sr-iov  Network=default/sriov-net-a  Default=false
@@ -143,7 +145,9 @@ Starting sample C application.
 Call NetUtil GetCPUInfo():
   cpuRsp.CPUSet = 0-63
 Call NetUtil GetHugepages():
-  Request = 1024  Limit = 1024
+  MyContainerName=sriov-example
+  Hugepages[0]:
+    ContainerName=sriov-example  Request: 1G=0 2M=0 Ukn=1024  Limit: 1G=0 2M=0 Ukn=1024
 Call NetUtil GetInterfaces():
   Interface[0]:
     DeviceType=host  Interface="eth0"
