@@ -23,8 +23,7 @@ func main() {
 			glog.Errorf("Error calling netlib.GetCPUInfo: %v", err)
 			return
 		}
-		glog.Infof("netlib.GetCPUInfo Response:")
-		fmt.Printf("| CPU     |: %+v\n", cpuResponse.CPUSet)
+		fmt.Printf("|CPU      |: %+v\n", cpuResponse.CPUSet)
 
 		// Test GetHugepages()
 		glog.Infof("CALL netlib.GetHugepages:")
@@ -32,8 +31,20 @@ func main() {
 		if err != nil {
 			glog.Infof("Error calling netlib.GetHugepages: %v", err)
 		} else {
-			glog.Infof("netlib.GetHugepages Response:")
-			fmt.Printf("| HugePage|: Request=%+v  Limit=%+v\n", hugepagesResponse.Request, hugepagesResponse.Limit)
+			fmt.Printf("|HugePage |: MyContainerName=%+v\n", hugepagesResponse.MyContainerName)
+			if len(hugepagesResponse.Hugepages) != 0 {
+				for index, hugepagesData := range hugepagesResponse.Hugepages {
+					fmt.Printf("| %-8d|: ContainerName=%+v  Request 1G=%+v 2M=%+v Ukn=%+v  Limit 1G=%+v 2M=%+v Ukn=%+v\n",
+						index,
+						hugepagesData.ContainerName,
+						hugepagesData.Request1G,
+						hugepagesData.Request2M,
+						hugepagesData.Request,
+						hugepagesData.Limit1G,
+						hugepagesData.Limit2M,
+						hugepagesData.Limit)
+				}
+			}
 		}
 
 		// Test GetInterfaces()
@@ -43,7 +54,7 @@ func main() {
 			glog.Errorf("Error calling netlib.GetInterfaces: %v", err)
 			return
 		}
-		glog.Infof("netlib.GetInterfaces Response:")
+		fmt.Printf("|Iface    |:\n")
 		for index, iface := range ifaceResponse.Interface {
 			fmt.Printf("| %-8d|: IfName=%+v  DeviceType=%+v  Network=%+v  Default=%+v\n",
 				index, iface.NetworkStatus.Interface, iface.DeviceType,

@@ -16,8 +16,18 @@ type CPUResponse struct {
 }
 
 type HugepagesResponse struct {
-	Request int64
-	Limit   int64
+	MyContainerName string
+	Hugepages       []*HugepagesData
+}
+
+type HugepagesData struct {
+	ContainerName string
+	Request       int64
+	Limit         int64
+	Request1G     int64
+	Limit1G       int64
+	Request2M     int64
+	Limit2M       int64
 }
 
 type InterfaceResponse struct {

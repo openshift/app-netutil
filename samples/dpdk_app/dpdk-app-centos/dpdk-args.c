@@ -29,6 +29,7 @@ static char STR_ETHERNET[] = "ethernet";
 
 /* Large enough to hold: ",mac=aa:bb:cc:dd:ee:ff" */
 #define DPDK_ARGS_MAX_MAC_STRLEN (25)
+#define DPDK_ARGS_MAX_CONTAINERNAME_STRLEN (80)
 
 static void dumpInterfaces(struct InterfaceResponse *pIfaceRsp) {
 	int i, j;
@@ -468,13 +469,119 @@ static int getInterfaces(int argc, int *pPortCnt, int *pPortMask) {
 	return(argc);
 }
 
+static void dumpHugepages(struct HugepagesResponse *pHugepagesRsp) {
+	int i;
+
+	if (pHugepagesRsp) {
+		if (pHugepagesRsp->MyContainerName) {
+			printf("  MyContainerName=%s\n", pHugepagesRsp->MyContainerName);
+		}
+		if (pHugepagesRsp->pHugepages) {
+			for (i = 0; i < pHugepagesRsp->numStructPopulated; i++) {
+				printf("  Hugepages[%d]:\n", i);
+
+				printf("  ");
+				if (pHugepagesRsp->pHugepages[i].ContainerName) {
+					printf("  ContainerName=%s", pHugepagesRsp->pHugepages[i].ContainerName);
+				}
+				printf("  Request: 1G=%ld 2M=%ld Ukn=%ld  Limit: 1G=%ld 2M=%ld Ukn=%ld\n",
+					pHugepagesRsp->pHugepages[i].Request1G,
+					pHugepagesRsp->pHugepages[i].Request2M,
+					pHugepagesRsp->pHugepages[i].Request,
+					pHugepagesRsp->pHugepages[i].Limit1G,
+					pHugepagesRsp->pHugepages[i].Limit2M,
+					pHugepagesRsp->pHugepages[i].Limit);
+			}
+		}
+	}
+}
+
+static void freeHugepages(struct HugepagesResponse *pHugepagesRsp) {
+	int i;
+
+	if (pHugepagesRsp) {
+		if (pHugepagesRsp->MyContainerName) {
+			free(pHugepagesRsp->MyContainerName);
+		}
+		if (pHugepagesRsp->pHugepages) {
+			for (i = 0; i < pHugepagesRsp->numStructPopulated; i++) {
+				if (pHugepagesRsp->pHugepages[i].ContainerName) {
+					free(pHugepagesRsp->pHugepages[i].ContainerName);
+				}
+			}
+		}
+	}
+}
+
+static int getHugepages(int argc) {
+	int i = 0;
+	int err;
+	int containerIndex = 0;
+	int64_t reqMemory = 0;
+	struct HugepagesResponse hugepagesRsp;
+
+	hugepagesRsp.numStructAllocated = NETUTIL_NUM_HUGEPAGES_DATA;
+	hugepagesRsp.numStructPopulated = 0;
+	hugepagesRsp.pHugepages = malloc(hugepagesRsp.numStructAllocated * sizeof(struct HugepagesData));
+	if (hugepagesRsp.pHugepages) {
+		memset(hugepagesRsp.pHugepages, 0, (hugepagesRsp.numStructAllocated * sizeof(struct HugepagesData)));
+		err = GetHugepages(&hugepagesRsp);
+		if ((err == NETUTIL_ERRNO_SUCCESS) || (err == NETUTIL_ERRNO_SIZE_ERROR)) {
+
+			if (debugArgs) {
+				dumpHugepages(&hugepagesRsp);
+			}
+
+			/* Loop through the list of containers to match container name */
+			/* from env. May be empty string, but compare anyway.          */
+			for (i = 0; i < hugepagesRsp.numStructPopulated; i++) {
+				if (strcmp(hugepagesRsp.MyContainerName, hugepagesRsp.pHugepages[i].ContainerName) == 0) {
+					containerIndex = i;
+					printf("  MATCH: ContainerName=%s, Index=%d\n", hugepagesRsp.pHugepages[i].ContainerName, containerIndex);
+					break;
+				}
+			}
+
+			/* Limit can never be less than Request. So use Limit if non-zero.  */
+			/* However, for hugepages, Limit and Request should be the same, so */
+			/* either value should be fine.                                     */
+			reqMemory =
+				(hugepagesRsp.pHugepages[containerIndex].Limit1G != 0) ? hugepagesRsp.pHugepages[containerIndex].Limit1G :
+				(hugepagesRsp.pHugepages[containerIndex].Limit2M != 0) ? hugepagesRsp.pHugepages[containerIndex].Limit2M :
+				(hugepagesRsp.pHugepages[containerIndex].Limit != 0) ? hugepagesRsp.pHugepages[containerIndex].Limit :
+				(hugepagesRsp.pHugepages[containerIndex].Request1G != 0) ? hugepagesRsp.pHugepages[containerIndex].Request1G :
+				(hugepagesRsp.pHugepages[containerIndex].Request2M != 0) ? hugepagesRsp.pHugepages[containerIndex].Request2M :
+				hugepagesRsp.pHugepages[containerIndex].Request;
+			
+			/* Assuming 2 NUMA sockets, only use what container has access too. */
+			/* TBD: Manage NUMA properly. */ 
+			reqMemory = reqMemory / 2;
+
+			/* Build up memory portion of DPDK Args. */
+			if (reqMemory != 0) {
+				strncpy(&myArgsArray[argc++][0], "-m", DPDK_ARGS_MAX_ARG_STRLEN-1);
+				snprintf(&myArgsArray[argc++][0], DPDK_ARGS_MAX_ARG_STRLEN-1,
+						"%ld", reqMemory);
+			}
+
+			strncpy(&myArgsArray[argc++][0], "-n", DPDK_ARGS_MAX_ARG_STRLEN-1);
+			strncpy(&myArgsArray[argc++][0], "4", DPDK_ARGS_MAX_ARG_STRLEN-1);
+
+			freeHugepages(&hugepagesRsp);
+
+		} else {
+			printf("  Couldn't get Hugepage info, err code: %d\n", err);
+		}
+	}
+
+	return(argc);
+}
+
 char** GetArgs(int *pArgc, eDpdkAppType appType)
 {
 	int argc = 0;
 	int i;
 	struct CPUResponse cpuRsp;
-	struct HugepagesResponse hugepagesRsp;
-	int64_t reqMemory = 0;
 	int err;
 	int portMask = 0;
 	int portCnt = 0;
@@ -497,23 +604,6 @@ char** GetArgs(int *pArgc, eDpdkAppType appType)
 	}
 
 
-	memset(&hugepagesRsp, 0, sizeof(hugepagesRsp));
-	err = GetHugepages(&hugepagesRsp);
-	if (err) {
-		printf("  Couldn't get Hugepage info, err code: %d\n", err);
-	} else {
-		/* Limit can never be less than Request. So use Limit if non-zero.  */
-		/* However, for hugepages, Limit and Request should be the same, so */
-		/* either value should be fine.                                     */
-		reqMemory = hugepagesRsp.Limit != 0 ? hugepagesRsp.Limit : hugepagesRsp.Request;
-		
-		/* Assuming 2 NUMA sockets, only use what container has access too. */
-		/* TBD: Manage NUMA properly. */ 
-		reqMemory = reqMemory / 2;
-		printf("  Hugepage: Request = %ld Limit = %ld  Using = %ld\n", hugepagesRsp.Request, hugepagesRsp.Limit, reqMemory);
-	}
-
-
 	memset(&myArgsArray[0][0], 0, sizeof(char)*DPDK_ARGS_MAX_ARG_STRLEN*DPDK_ARGS_MAX_ARGS);
 	memset(&myArgv[0], 0, sizeof(char)*DPDK_ARGS_MAX_ARGS);
 
@@ -523,14 +613,7 @@ char** GetArgs(int *pArgc, eDpdkAppType appType)
 		 */
 		strncpy(&myArgsArray[argc++][0], "dpdk-app", DPDK_ARGS_MAX_ARG_STRLEN-1);
 
-		if (reqMemory != 0) {
-			strncpy(&myArgsArray[argc++][0], "-m", DPDK_ARGS_MAX_ARG_STRLEN-1);
-			snprintf(&myArgsArray[argc++][0], DPDK_ARGS_MAX_ARG_STRLEN-1,
-					"%ld", reqMemory);
-		}
-
-		strncpy(&myArgsArray[argc++][0], "-n", DPDK_ARGS_MAX_ARG_STRLEN-1);
-		strncpy(&myArgsArray[argc++][0], "4", DPDK_ARGS_MAX_ARG_STRLEN-1);
+		argc = getHugepages(argc);
 
 		//strncpy(&myArgsArray[argc++][0], "--file-prefix=dpdk-app_", DPDK_ARGS_MAX_ARG_STRLEN-1);
 
