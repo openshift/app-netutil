@@ -250,6 +250,50 @@ static void freeInterfaces(struct InterfaceResponse *pIfaceRsp) {
 	}
 }
 
+static void dumpHugepages(struct HugepagesResponse *pHugepagesRsp) {
+	int i;
+
+	if (pHugepagesRsp) {
+		if (pHugepagesRsp->MyContainerName) {
+			printf("  MyContainerName=%s\n", pHugepagesRsp->MyContainerName);
+		}
+		if (pHugepagesRsp->pHugepages) {
+			for (i = 0; i < pHugepagesRsp->numStructPopulated; i++) {
+				printf("  Hugepages[%d]:\n", i);
+
+				printf("  ");
+				if (pHugepagesRsp->pHugepages[i].ContainerName) {
+					printf("  ContainerName=%s", pHugepagesRsp->pHugepages[i].ContainerName);
+				}
+				printf("  Request: 1G=%ld 2M=%ld Ukn=%ld  Limit: 1G=%ld 2M=%ld Ukn=%ld\n",
+					pHugepagesRsp->pHugepages[i].Request1G,
+					pHugepagesRsp->pHugepages[i].Request2M,
+					pHugepagesRsp->pHugepages[i].Request,
+					pHugepagesRsp->pHugepages[i].Limit1G,
+					pHugepagesRsp->pHugepages[i].Limit2M,
+					pHugepagesRsp->pHugepages[i].Limit);
+			}
+		}
+	}
+}
+
+static void freeHugepages(struct HugepagesResponse *pHugepagesRsp) {
+	int i;
+
+	if (pHugepagesRsp) {
+		if (pHugepagesRsp->MyContainerName) {
+			free(pHugepagesRsp->MyContainerName);
+		}
+		if (pHugepagesRsp->pHugepages) {
+			for (i = 0; i < pHugepagesRsp->numStructPopulated; i++) {
+				if (pHugepagesRsp->pHugepages[i].ContainerName) {
+					free(pHugepagesRsp->pHugepages[i].ContainerName);
+				}
+			}
+		}
+	}
+}
+
 int main() {
 	struct CPUResponse cpuRsp;
 	struct HugepagesResponse hugepagesRsp;
@@ -281,12 +325,25 @@ int main() {
 	// Example of a C call to GO that returns a structure.
 	//
 	printf("Call NetUtil GetHugepages():\n");
-	memset(&hugepagesRsp, 0, sizeof(hugepagesRsp));
-	err = GetHugepages(&hugepagesRsp);
-	if (err) {
-		printf("  Couldn't get Hugepage info, err code: %d\n", err);
-	} else { 
-		printf("  Request = %ld  Limit = %ld\n", hugepagesRsp.Request, hugepagesRsp.Limit);
+	hugepagesRsp.numStructAllocated = NETUTIL_NUM_HUGEPAGES_DATA;
+	hugepagesRsp.numStructPopulated = 0;
+	hugepagesRsp.pHugepages = malloc(hugepagesRsp.numStructAllocated * sizeof(struct HugepagesData));
+	if (hugepagesRsp.pHugepages) {
+		memset(hugepagesRsp.pHugepages, 0, (hugepagesRsp.numStructAllocated * sizeof(struct HugepagesData)));
+		err = GetHugepages(&hugepagesRsp);
+		if (err) {
+			printf("Couldn't get hugepage data, err code: %d\n", err);
+
+			if (err == NETUTIL_ERRNO_SIZE_ERROR) {
+				// One of the arrays wasn't sized correctly, but some data was allocated.
+				// Free what was allocated.
+				freeHugepages(&hugepagesRsp);
+			}
+			// Don't return on error. Common for hugepage data to not be available.
+		} else {
+			dumpHugepages(&hugepagesRsp);
+			freeHugepages(&hugepagesRsp);
+		}
 	}
 
 	//

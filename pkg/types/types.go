@@ -16,8 +16,18 @@ type CPUResponse struct {
 }
 
 type HugepagesResponse struct {
-	Request int64
-	Limit   int64
+	MyContainerName string
+	Hugepages       []*HugepagesData
+}
+
+type HugepagesData struct {
+	ContainerName string
+	Request       int64
+	Limit         int64
+	Request1G     int64
+	Limit1G       int64
+	Request2M     int64
+	Limit2M       int64
 }
 
 type InterfaceResponse struct {
@@ -33,12 +43,3 @@ type InterfaceData struct {
 	DeviceType    string                 `json:"device-type,omitempty"`
 	NetworkStatus nettypes.NetworkStatus `json:"network-status,omitempty"`
 }
-
-// Temporary - Use from network-resources-injector once PR merged.
-const (
-	DownwardAPIMountPath = "/etc/podnetinfo"
-	AnnotationsPath      = "annotations"
-	LabelsPath           = "labels"
-	HugepagesRequestPath = "hugepages_request"
-	HugepagesLimitPath   = "hugepages_limit"
-)

@@ -44,6 +44,10 @@ spec:
     #- name: DPDK_SAMPLE_APP
     #  value: "l2fwd"
     #
+    # Injected by Network-Resource-Injector, here for reference
+    #- name: CONTAINER_NAME
+    #  value: "sriov-example"
+    #
     # Uncomment to debug DPDK App or to run manually to change
     # DPDK command line options.
     #command: ["sleep", "infinity"]
@@ -63,24 +67,24 @@ spec:
         # then uncomment the 1G or 2M Hugepage sections below.
         #
         # 1G Hugepages
-        #- path: "hugepages_request"
+        #- path: "hugepages_1G_request_sriov-example"
         #  resourceFieldRef:
         #    containerName: sriov-example
         #    resource: requests.hugepages-1Gi
         #    divisor: 1Mi
-        #- path: "hugepages_limit"
+        #- path: "hugepages_1G_limit_sriov-example"
         #  resourceFieldRef:
         #    containerName: sriov-example
         #    resource: limits.hugepages-1Gi
         #    divisor: 1Mi
         #
         # 2M Hugepages
-        #- path: "hugepages_request"
+        #- path: "hugepages_2M_request_sriov-example"
         #  resourceFieldRef:
         #    containerName: sriov-example
         #    resource: requests.hugepages-2Mi
         #    divisor: 1Mi
-        #- path: "hugepages_limit"
+        #- path: "hugepages_2M_limit_sriov-example"
         #  resourceFieldRef:
         #    containerName: sriov-example
         #    resource: limits.hugepages-2Mi

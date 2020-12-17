@@ -7,12 +7,28 @@ package main
 // Mapped from app-netutil.lib/v1alpha/types.go
 
 struct CPUResponse {
-    char*    CPUSet;
+	char*    CPUSet;
 };
 
+#define NETUTIL_NUM_HUGEPAGES_DATA  10
+
+struct HugepagesData {
+	char*    ContainerName;
+	int64_t  Request;
+	int64_t  Limit;
+	int64_t  Request1G;
+	int64_t  Limit1G;
+	int64_t  Request2M;
+	int64_t  Limit2M;
+};
+
+// *pIface is an array of 'struct HugepagesData' that is allocated
+// from the C program.
 struct HugepagesResponse {
-    int64_t  Request;
-    int64_t  Limit;
+	int                   numStructAllocated;
+	int                   numStructPopulated;
+	char*                 MyContainerName;
+	struct HugepagesData *pHugepages;
 };
 
 #define NETUTIL_ERRNO_SUCCESS 0
@@ -152,12 +168,45 @@ func GetCPUInfo(c_cpuResp *C.struct_CPUResponse) int64 {
 
 //export GetHugepages
 func GetHugepages(c_hugepagesResp *C.struct_HugepagesResponse) int64 {
+
+	var j C.int
+
 	flag.Parse()
 	hugepagesRsp, err := netlib.GetHugepages()
 
 	if err == nil {
-		c_hugepagesResp.Request = C.long(hugepagesRsp.Request)
-		c_hugepagesResp.Limit = C.long(hugepagesRsp.Limit)
+		if hugepagesRsp.MyContainerName != "" {
+			c_hugepagesResp.MyContainerName = C.CString(hugepagesRsp.MyContainerName)
+		}
+
+		// Map the input pointer to array of structures, c_hugepagesResp.pHugepages, to
+		// a slice of the structures, c_hugepagesResp.pHugepages. Then the slice can be
+		// indexed.
+		c_hugepagesResp_pHugepages := (*[1 << 30]C.struct_HugepagesData)(unsafe.Pointer(c_hugepagesResp.pHugepages))[:c_hugepagesResp.numStructAllocated:c_hugepagesResp.numStructAllocated]
+
+		for i, hugepagesData := range hugepagesRsp.Hugepages {
+			if j < c_hugepagesResp.numStructAllocated {
+				if hugepagesData.ContainerName != "" {
+					c_hugepagesResp_pHugepages[j].ContainerName = C.CString(hugepagesData.ContainerName)
+				}
+				c_hugepagesResp_pHugepages[j].Request = C.long(hugepagesData.Request)
+				c_hugepagesResp_pHugepages[j].Limit = C.long(hugepagesData.Limit)
+				c_hugepagesResp_pHugepages[j].Request1G = C.long(hugepagesData.Request1G)
+				c_hugepagesResp_pHugepages[j].Limit1G = C.long(hugepagesData.Limit1G)
+				c_hugepagesResp_pHugepages[j].Request2M = C.long(hugepagesData.Request2M)
+				c_hugepagesResp_pHugepages[j].Limit2M = C.long(hugepagesData.Limit2M)
+
+				c_hugepagesResp.numStructPopulated++
+
+				j++
+			} else {
+
+				glog.Errorf("HugepagesResponse struct not sized properly."+
+					"At index %d.", i)
+
+				return NETUTIL_ERRNO_SIZE_ERROR
+			}
+		}
 		return NETUTIL_ERRNO_SUCCESS
 	}
 	glog.Errorf("netlib.GetHugepages() err: %+v", err)
