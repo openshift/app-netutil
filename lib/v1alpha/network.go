@@ -43,15 +43,15 @@ func GetInterfaces() (*types.InterfaceResponse, error) {
 
 	// Open Annotations File
 	annotationPath := filepath.Join(nritypes.DownwardAPIMountPath, nritypes.AnnotationsPath)
-        if _, err := os.Stat(annotationPath); err != nil {
+	if _, err := os.Stat(annotationPath); err != nil {
 		if os.IsNotExist(err) {
 			glog.Infof("GetInterfaces: \"annotations\" file: %v does not exist.", annotationPath)
 		}
-        } else {
+	} else {
 		file, err := os.Open(annotationPath)
 		if err != nil {
 			glog.Errorf("GetInterfaces: Error opening \"annotations\" file: %v ", err)
-	                return response, err
+			return response, err
 		}
 		defer file.Close()
 
