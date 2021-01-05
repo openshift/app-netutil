@@ -43,69 +43,73 @@ func GetInterfaces() (*types.InterfaceResponse, error) {
 
 	// Open Annotations File
 	annotationPath := filepath.Join(nritypes.DownwardAPIMountPath, nritypes.AnnotationsPath)
-	glog.Infof("GetInterfaces: Open %s", annotationPath)
-	file, err := os.Open(annotationPath)
-	if err != nil {
-		glog.Errorf("GetInterfaces: Error opening \"annotations\" file: %v", err)
-		return response, err
-	}
-	defer file.Close()
+	if _, err := os.Stat(annotationPath); err != nil {
+		if os.IsNotExist(err) {
+			glog.Infof("GetInterfaces: \"annotations\" file: %v does not exist.", annotationPath)
+		}
+	} else {
+		file, err := os.Open(annotationPath)
+		if err != nil {
+			glog.Errorf("GetInterfaces: Error opening \"annotations\" file: %v ", err)
+			return response, err
+		}
+		defer file.Close()
 
-	// Buffers to store unmarshalled data (from annotations
-	// or files) used by app-netutil
-	netStatData := &networkstatus.NetStatusData{}
-	usrspData := &userplugin.UserspacePlugin{}
+		// Buffers to store unmarshalled data (from annotations
+		// or files) used by app-netutil
+		netStatData := &networkstatus.NetStatusData{}
+		usrspData := &userplugin.UserspacePlugin{}
 
-	//
-	// Parse the file into individual annotations
-	//
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		status := strings.Split(string(line), "\n")
+		//
+		// Parse the file into individual annotations
+		//
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			line := strings.TrimSpace(scanner.Text())
+			status := strings.Split(string(line), "\n")
 
-		// Loop through each annotation
-		for _, s := range status {
-			glog.Infof("  s-%v", s)
-			parts := strings.Split(string(s), "=")
+			// Loop through each annotation
+			for _, s := range status {
+				glog.Infof("  s-%v", s)
+				parts := strings.Split(string(s), "=")
 
-			// DEBUG
-			glog.Infof("  PartsLen-%d", len(parts))
-			if len(parts) >= 1 {
-				glog.Infof("  parts[0]-%s", parts[0])
-			}
+				// DEBUG
+				glog.Infof("  PartsLen-%d", len(parts))
+				if len(parts) >= 1 {
+					glog.Infof("  parts[0]-%s", parts[0])
+				}
 
-			if len(parts) == 2 {
+				if len(parts) == 2 {
 
-				// Remove the Indent from the original marshalling
-				parts[1] = strings.Replace(string(parts[1]), "\\n", "", -1)
-				parts[1] = strings.Replace(string(parts[1]), "\\", "", -1)
-				parts[1] = strings.Replace(string(parts[1]), " ", "", -1)
-				parts[1] = string(parts[1][1 : len(parts[1])-1])
+					// Remove the Indent from the original marshalling
+					parts[1] = strings.Replace(string(parts[1]), "\\n", "", -1)
+					parts[1] = strings.Replace(string(parts[1]), "\\", "", -1)
+					parts[1] = strings.Replace(string(parts[1]), " ", "", -1)
+					parts[1] = string(parts[1][1 : len(parts[1])-1])
 
-				// Parse any NetworkStatus Annotations. Values will be
-				// saved in netStatData structure for later.
-				networkstatus.ParseAnnotations(parts[0], parts[1], netStatData)
+					// Parse any NetworkStatus Annotations. Values will be
+					// saved in netStatData structure for later.
+					networkstatus.ParseAnnotations(parts[0], parts[1], netStatData)
 
-				// Parse any Userspace Annotations. Values will be
-				// saved in usrspData structure for later.
-				userplugin.ParseAnnotations(parts[0], parts[1], usrspData)
+					// Parse any Userspace Annotations. Values will be
+					// saved in usrspData structure for later.
+					userplugin.ParseAnnotations(parts[0], parts[1], usrspData)
+				}
 			}
 		}
+		// Append any NetworkStatus collected data to the list
+		// of interfaces.
+		//
+		// Because return data is based on NetworkStatus, call NetworkStatus
+		// processing first. For efficiency, it assumes no interfaces have been
+		// added to list, so it doesn't search existing list to make sure a given
+		// interfaces has not already been added.
+		networkstatus.AppendInterfaceData(netStatData, response)
+
+		// Append any Userspace collected data to the list
+		// of interfaces.
+		userplugin.AppendInterfaceData(usrspData, response)
 	}
-
-	// Append any NetworkStatus collected data to the list
-	// of interfaces.
-	//
-	// Because return data is based on NetworkStatus, call NetworkStatus
-	// processing first. For efficiency, it assumes no interfaces have been
-	// added to list, so it doesn't search existing list to make sure a given
-	// interfaces has not already been added.
-	networkstatus.AppendInterfaceData(netStatData, response)
-
-	// Append any Userspace collected data to the list
-	// of interfaces.
-	userplugin.AppendInterfaceData(usrspData, response)
 
 	// PCI Address for SR-IOV Interfaces are found in
 	// Environmental Variables. Search through them to
