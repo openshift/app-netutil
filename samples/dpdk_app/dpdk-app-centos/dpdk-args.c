@@ -519,6 +519,7 @@ static int getHugepages(int argc) {
 	int err;
 	int containerIndex = 0;
 	int64_t reqMemory = 0;
+	int64_t hugepageMemory = 1024;
 	struct HugepagesResponse hugepagesRsp;
 
 	memset(&hugepagesRsp, 0, sizeof(struct HugepagesResponse));
@@ -556,27 +557,27 @@ static int getHugepages(int argc) {
 				(hugepagesRsp.pHugepages[containerIndex].Request1G != 0) ? hugepagesRsp.pHugepages[containerIndex].Request1G :
 				(hugepagesRsp.pHugepages[containerIndex].Request2M != 0) ? hugepagesRsp.pHugepages[containerIndex].Request2M :
 				hugepagesRsp.pHugepages[containerIndex].Request;
-			
-			/* Assuming 2 NUMA sockets, only use what container has access too. */
-			/* TBD: Manage NUMA properly. */ 
-			reqMemory = reqMemory / 2;
 
-			/* Build up memory portion of DPDK Args. */
 			if (reqMemory != 0) {
-				strncpy(&myArgsArray[argc++][0], "-m", DPDK_ARGS_MAX_ARG_STRLEN-1);
-				snprintf(&myArgsArray[argc++][0], DPDK_ARGS_MAX_ARG_STRLEN-1,
-						"%ld", reqMemory);
+				/* Assuming 2 NUMA sockets, only use what container has access too. */
+				/* TBD: Manage NUMA properly. */ 
+				hugepageMemory = reqMemory / 2;
 			}
-
-			strncpy(&myArgsArray[argc++][0], "-n", DPDK_ARGS_MAX_ARG_STRLEN-1);
-			strncpy(&myArgsArray[argc++][0], "4", DPDK_ARGS_MAX_ARG_STRLEN-1);
 
 			freeHugepages(&hugepagesRsp);
 
 		} else {
-			printf("  Couldn't get Hugepage info, err code: %d\n", err);
+			printf("  Couldn't get Hugepage info, defaulting to %ld, err code: %d\n", hugepageMemory, err);
 		}
 	}
+
+	/* Build up memory portion of DPDK Args. */
+	strncpy(&myArgsArray[argc++][0], "-m", DPDK_ARGS_MAX_ARG_STRLEN-1);
+	snprintf(&myArgsArray[argc++][0], DPDK_ARGS_MAX_ARG_STRLEN-1,
+		"%ld", hugepageMemory);
+
+	strncpy(&myArgsArray[argc++][0], "-n", DPDK_ARGS_MAX_ARG_STRLEN-1);
+	strncpy(&myArgsArray[argc++][0], "4", DPDK_ARGS_MAX_ARG_STRLEN-1);
 
 	return(argc);
 }
