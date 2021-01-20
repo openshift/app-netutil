@@ -671,15 +671,17 @@ char** GetArgs(int *pArgc, eDpdkAppType appType)
 			/* regardless of the packet’s Ethernet MAC destination address.   */
 			strncpy(&myArgsArray[argc++][0], "-P", DPDK_ARGS_MAX_ARG_STRLEN-1);
 
-#if 1
 			/* Determines which queues from which ports are mapped to which cores. */
 			/* Usage: --config="(port,queue,lcore)[,(port,queue,lcore)]" */
 			length = 0;
-			length += snprintf(&myArgsArray[argc][length], DPDK_ARGS_MAX_ARG_STRLEN-length,
-							"--config=\"");
 			for (port = 0; port < portCnt; port++) {
+				/* If the first port, add '--config="' to string. */
+				if (port == 0) {
+					length += snprintf(&myArgsArray[argc][length], DPDK_ARGS_MAX_ARG_STRLEN-length,
+									"--config=\"");
+				}
 				/* If not the first port, add a ',' to string. */
-				if (port != 0) {
+				else {
 					length += snprintf(&myArgsArray[argc][length], DPDK_ARGS_MAX_ARG_STRLEN-length, ",");
 				}
 
@@ -693,23 +695,6 @@ char** GetArgs(int *pArgc, eDpdkAppType appType)
 				}
 			}
 			argc++;
-#else
-			/* Determines which queues from which ports are mapped to which cores. */
-			/* Usage: --config (port,queue,lcore)[,(port,queue,lcore)] */
-			strncpy(&myArgsArray[argc++][0], "--config", DPDK_ARGS_MAX_ARG_STRLEN-1);
-			length = 0;
-			for (port = 0; port < portCnt; port++) {
-				/* If not the first port, add a ',' to string. */
-				if (port != 0) {
-					length += snprintf(&myArgsArray[argc][length], DPDK_ARGS_MAX_ARG_STRLEN-length, ",");
-				}
-
-				/* Add each port data */
-				length += snprintf(&myArgsArray[argc][length], DPDK_ARGS_MAX_ARG_STRLEN-length,
-					"(%d,%d,%d)", port, 0 /* queue */, lcoreBase /*+port*/);
-			}
-			argc++;
-#endif
 
 			/* Set to use software to analyze packet type. Without this option, */
 			/* hardware will check the packet type. Not sure if vHost supports. */
