@@ -532,13 +532,16 @@ static int getHugepages(int argc) {
 				dumpHugepages(&hugepagesRsp);
 			}
 
-			/* Loop through the list of containers to match container name */
-			/* from env. May be empty string, but compare anyway.          */
-			for (i = 0; i < hugepagesRsp.numStructPopulated; i++) {
-				if (strcmp(hugepagesRsp.MyContainerName, hugepagesRsp.pHugepages[i].ContainerName) == 0) {
-					containerIndex = i;
-					printf("  MATCH: ContainerName=%s, Index=%d\n", hugepagesRsp.pHugepages[i].ContainerName, containerIndex);
-					break;
+			/* Loop through the list of containers to match container name from env. */
+			if (hugepagesRsp.MyContainerName) {
+				for (i = 0; i < hugepagesRsp.numStructPopulated; i++) {
+					if (hugepagesRsp.pHugepages[i].ContainerName) {
+						if (strcmp(hugepagesRsp.MyContainerName, hugepagesRsp.pHugepages[i].ContainerName) == 0) {
+							containerIndex = i;
+							printf("  MATCH: ContainerName=%s, Index=%d\n", hugepagesRsp.pHugepages[i].ContainerName, containerIndex);
+							break;
+						}
+					}
 				}
 			}
 
