@@ -509,6 +509,7 @@ static void freeHugepages(struct HugepagesResponse *pHugepagesRsp) {
 					free(pHugepagesRsp->pHugepages[i].ContainerName);
 				}
 			}
+			free(pHugepagesRsp->pHugepages);
 		}
 	}
 }
@@ -520,8 +521,8 @@ static int getHugepages(int argc) {
 	int64_t reqMemory = 0;
 	struct HugepagesResponse hugepagesRsp;
 
+	memset(&hugepagesRsp, 0, sizeof(struct HugepagesResponse));
 	hugepagesRsp.numStructAllocated = NETUTIL_NUM_HUGEPAGES_DATA;
-	hugepagesRsp.numStructPopulated = 0;
 	hugepagesRsp.pHugepages = malloc(hugepagesRsp.numStructAllocated * sizeof(struct HugepagesData));
 	if (hugepagesRsp.pHugepages) {
 		memset(hugepagesRsp.pHugepages, 0, (hugepagesRsp.numStructAllocated * sizeof(struct HugepagesData)));
