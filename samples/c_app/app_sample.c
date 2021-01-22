@@ -290,6 +290,7 @@ static void freeHugepages(struct HugepagesResponse *pHugepagesRsp) {
 					free(pHugepagesRsp->pHugepages[i].ContainerName);
 				}
 			}
+			free(pHugepagesRsp->pHugepages);
 		}
 	}
 }
@@ -325,8 +326,8 @@ int main() {
 	// Example of a C call to GO that returns a structure.
 	//
 	printf("Call NetUtil GetHugepages():\n");
+	memset(&hugepagesRsp, 0, sizeof(struct HugepagesResponse));
 	hugepagesRsp.numStructAllocated = NETUTIL_NUM_HUGEPAGES_DATA;
-	hugepagesRsp.numStructPopulated = 0;
 	hugepagesRsp.pHugepages = malloc(hugepagesRsp.numStructAllocated * sizeof(struct HugepagesData));
 	if (hugepagesRsp.pHugepages) {
 		memset(hugepagesRsp.pHugepages, 0, (hugepagesRsp.numStructAllocated * sizeof(struct HugepagesData)));

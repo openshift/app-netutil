@@ -509,6 +509,7 @@ static void freeHugepages(struct HugepagesResponse *pHugepagesRsp) {
 					free(pHugepagesRsp->pHugepages[i].ContainerName);
 				}
 			}
+			free(pHugepagesRsp->pHugepages);
 		}
 	}
 }
@@ -518,10 +519,11 @@ static int getHugepages(int argc) {
 	int err;
 	int containerIndex = 0;
 	int64_t reqMemory = 0;
+	int64_t hugepageMemory = 1024;
 	struct HugepagesResponse hugepagesRsp;
 
+	memset(&hugepagesRsp, 0, sizeof(struct HugepagesResponse));
 	hugepagesRsp.numStructAllocated = NETUTIL_NUM_HUGEPAGES_DATA;
-	hugepagesRsp.numStructPopulated = 0;
 	hugepagesRsp.pHugepages = malloc(hugepagesRsp.numStructAllocated * sizeof(struct HugepagesData));
 	if (hugepagesRsp.pHugepages) {
 		memset(hugepagesRsp.pHugepages, 0, (hugepagesRsp.numStructAllocated * sizeof(struct HugepagesData)));
@@ -532,13 +534,16 @@ static int getHugepages(int argc) {
 				dumpHugepages(&hugepagesRsp);
 			}
 
-			/* Loop through the list of containers to match container name */
-			/* from env. May be empty string, but compare anyway.          */
-			for (i = 0; i < hugepagesRsp.numStructPopulated; i++) {
-				if (strcmp(hugepagesRsp.MyContainerName, hugepagesRsp.pHugepages[i].ContainerName) == 0) {
-					containerIndex = i;
-					printf("  MATCH: ContainerName=%s, Index=%d\n", hugepagesRsp.pHugepages[i].ContainerName, containerIndex);
-					break;
+			/* Loop through the list of containers to match container name from env. */
+			if (hugepagesRsp.MyContainerName) {
+				for (i = 0; i < hugepagesRsp.numStructPopulated; i++) {
+					if (hugepagesRsp.pHugepages[i].ContainerName) {
+						if (strcmp(hugepagesRsp.MyContainerName, hugepagesRsp.pHugepages[i].ContainerName) == 0) {
+							containerIndex = i;
+							printf("  MATCH: ContainerName=%s, Index=%d\n", hugepagesRsp.pHugepages[i].ContainerName, containerIndex);
+							break;
+						}
+					}
 				}
 			}
 
@@ -552,27 +557,27 @@ static int getHugepages(int argc) {
 				(hugepagesRsp.pHugepages[containerIndex].Request1G != 0) ? hugepagesRsp.pHugepages[containerIndex].Request1G :
 				(hugepagesRsp.pHugepages[containerIndex].Request2M != 0) ? hugepagesRsp.pHugepages[containerIndex].Request2M :
 				hugepagesRsp.pHugepages[containerIndex].Request;
-			
-			/* Assuming 2 NUMA sockets, only use what container has access too. */
-			/* TBD: Manage NUMA properly. */ 
-			reqMemory = reqMemory / 2;
 
-			/* Build up memory portion of DPDK Args. */
 			if (reqMemory != 0) {
-				strncpy(&myArgsArray[argc++][0], "-m", DPDK_ARGS_MAX_ARG_STRLEN-1);
-				snprintf(&myArgsArray[argc++][0], DPDK_ARGS_MAX_ARG_STRLEN-1,
-						"%ld", reqMemory);
+				/* Assuming 2 NUMA sockets, only use what container has access too. */
+				/* TBD: Manage NUMA properly. */ 
+				hugepageMemory = reqMemory / 2;
 			}
-
-			strncpy(&myArgsArray[argc++][0], "-n", DPDK_ARGS_MAX_ARG_STRLEN-1);
-			strncpy(&myArgsArray[argc++][0], "4", DPDK_ARGS_MAX_ARG_STRLEN-1);
 
 			freeHugepages(&hugepagesRsp);
 
 		} else {
-			printf("  Couldn't get Hugepage info, err code: %d\n", err);
+			printf("  Couldn't get Hugepage info, defaulting to %ld, err code: %d\n", hugepageMemory, err);
 		}
 	}
+
+	/* Build up memory portion of DPDK Args. */
+	strncpy(&myArgsArray[argc++][0], "-m", DPDK_ARGS_MAX_ARG_STRLEN-1);
+	snprintf(&myArgsArray[argc++][0], DPDK_ARGS_MAX_ARG_STRLEN-1,
+		"%ld", hugepageMemory);
+
+	strncpy(&myArgsArray[argc++][0], "-n", DPDK_ARGS_MAX_ARG_STRLEN-1);
+	strncpy(&myArgsArray[argc++][0], "4", DPDK_ARGS_MAX_ARG_STRLEN-1);
 
 	return(argc);
 }
@@ -666,15 +671,17 @@ char** GetArgs(int *pArgc, eDpdkAppType appType)
 			/* regardless of the packet’s Ethernet MAC destination address.   */
 			strncpy(&myArgsArray[argc++][0], "-P", DPDK_ARGS_MAX_ARG_STRLEN-1);
 
-#if 1
 			/* Determines which queues from which ports are mapped to which cores. */
 			/* Usage: --config="(port,queue,lcore)[,(port,queue,lcore)]" */
 			length = 0;
-			length += snprintf(&myArgsArray[argc][length], DPDK_ARGS_MAX_ARG_STRLEN-length,
-							"--config=\"");
 			for (port = 0; port < portCnt; port++) {
+				/* If the first port, add '--config="' to string. */
+				if (port == 0) {
+					length += snprintf(&myArgsArray[argc][length], DPDK_ARGS_MAX_ARG_STRLEN-length,
+									"--config=\"");
+				}
 				/* If not the first port, add a ',' to string. */
-				if (port != 0) {
+				else {
 					length += snprintf(&myArgsArray[argc][length], DPDK_ARGS_MAX_ARG_STRLEN-length, ",");
 				}
 
@@ -688,23 +695,6 @@ char** GetArgs(int *pArgc, eDpdkAppType appType)
 				}
 			}
 			argc++;
-#else
-			/* Determines which queues from which ports are mapped to which cores. */
-			/* Usage: --config (port,queue,lcore)[,(port,queue,lcore)] */
-			strncpy(&myArgsArray[argc++][0], "--config", DPDK_ARGS_MAX_ARG_STRLEN-1);
-			length = 0;
-			for (port = 0; port < portCnt; port++) {
-				/* If not the first port, add a ',' to string. */
-				if (port != 0) {
-					length += snprintf(&myArgsArray[argc][length], DPDK_ARGS_MAX_ARG_STRLEN-length, ",");
-				}
-
-				/* Add each port data */
-				length += snprintf(&myArgsArray[argc][length], DPDK_ARGS_MAX_ARG_STRLEN-length,
-					"(%d,%d,%d)", port, 0 /* queue */, lcoreBase /*+port*/);
-			}
-			argc++;
-#endif
 
 			/* Set to use software to analyze packet type. Without this option, */
 			/* hardware will check the packet type. Not sure if vHost supports. */
