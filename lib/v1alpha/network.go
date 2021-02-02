@@ -130,11 +130,18 @@ func GetInterfaces() (*types.InterfaceResponse, error) {
 				// DeviceInfo in the NetworkStatus annotation also has PCI Address.
 				// So skip if PCI Address already found.
 				for _, ifaceData := range response.Interface {
-					if ifaceData.NetworkStatus.DeviceInfo != nil &&
-						ifaceData.NetworkStatus.DeviceInfo.Pci != nil {
-						if strings.EqualFold(ifaceData.NetworkStatus.DeviceInfo.Pci.PciAddress, id) {
+					if ifaceData.NetworkStatus.DeviceInfo != nil {
+						if ifaceData.NetworkStatus.DeviceInfo.Pci != nil &&
+							strings.EqualFold(ifaceData.NetworkStatus.DeviceInfo.Pci.PciAddress, id) {
 							// PCI Address in ENV matched that in DeviceInfo. Mark as SR-IOV.
 							ifaceData.DeviceType = types.INTERFACE_TYPE_SRIOV
+							found = true
+							break
+						}
+						if ifaceData.NetworkStatus.DeviceInfo.Vdpa != nil &&
+							strings.EqualFold(ifaceData.NetworkStatus.DeviceInfo.Vdpa.PciAddress, id) {
+							// PCI Address in ENV matched that in DeviceInfo.
+							// Leave the vDPA device and skip processing of the SR-IOV Interface
 							found = true
 							break
 						}
