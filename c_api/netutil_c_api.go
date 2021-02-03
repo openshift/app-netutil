@@ -127,8 +127,6 @@ import "C"
 import "unsafe"
 
 import (
-	"flag"
-
 	"github.com/golang/glog"
 	nettypes "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 
@@ -155,7 +153,6 @@ const (
 
 //export GetCPUInfo
 func GetCPUInfo(c_cpuResp *C.struct_CPUResponse) int64 {
-	flag.Parse()
 	cpuRsp, err := netlib.GetCPUInfo()
 
 	if err == nil {
@@ -171,7 +168,6 @@ func GetHugepages(c_hugepagesResp *C.struct_HugepagesResponse) int64 {
 
 	var j C.int
 
-	flag.Parse()
 	hugepagesRsp, err := netlib.GetHugepages()
 
 	if err == nil {
@@ -218,7 +214,6 @@ func GetInterfaces(c_ifaceRsp *C.struct_InterfaceResponse) int64 {
 
 	var j C.int
 
-	flag.Parse()
 	ifaceRsp, err := netlib.GetInterfaces()
 
 	if err == nil {
