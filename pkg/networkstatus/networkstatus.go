@@ -41,8 +41,6 @@ func AppendInterfaceData(netStatData *NetStatusData, ifaceRsp *types.InterfaceRe
 
 	glog.Infof("PRINT EACH NetworkStatus - len=%d", len(netStatData.networkStatusSlice))
 	for _, status := range netStatData.networkStatusSlice {
-		ifaceData = nil
-
 		glog.Infof("  status:")
 		glog.Infof("%v", status)
 
