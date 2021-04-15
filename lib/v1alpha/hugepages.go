@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/golang/glog"
 	nritypes "github.com/intel/network-resources-injector/pkg/types"
 
+	"github.com/openshift/app-netutil/pkg/logging"
 	"github.com/openshift/app-netutil/pkg/types"
 )
 
@@ -24,12 +24,12 @@ const (
 // API Functions
 //
 func GetHugepages() (*types.HugepagesResponse, error) {
-	glog.Infof("GetHugepages: Version=%s  Git Commit=%s\n", AppNetutilVersion, GitCommit)
+	logging.Infof("GetHugepages: Version=%s  Git Commit=%s", AppNetutilVersion, GitCommit)
 
 	response := &types.HugepagesResponse{}
 
 	// Try to retrieve this container's name from the environment variable
-	glog.Infof("PROCESS ENV:")
+	logging.Infof("PROCESS ENV:")
 	envResponse, err := getEnv()
 	if err == nil {
 		for envName, envVal := range envResponse.Envs {
@@ -38,21 +38,21 @@ func GetHugepages() (*types.HugepagesResponse, error) {
 			}
 		}
 	} else {
-		glog.Errorf("GetHugepages: Error calling getEnv: %v", err)
+		_ = logging.Errorf("GetHugepages: Error calling getEnv: %v", err)
 	}
 
 	// Loop through all the files in the Downward API directory
 	// and match the files with the "hugepages_" prefix.
 	directory, err := os.Open(nritypes.DownwardAPIMountPath)
 	if err != nil {
-		glog.Infof("Error opening directory %s: %v", nritypes.DownwardAPIMountPath, err)
+		logging.Infof("Error opening directory %s: %v", nritypes.DownwardAPIMountPath, err)
 		return nil, err
 	}
 	defer directory.Close()
 
 	fileList, err := directory.Readdirnames(0)
 	if err != nil {
-		glog.Infof("Error reading directory names in %s: %v", nritypes.DownwardAPIMountPath, err)
+		logging.Infof("Error reading directory names in %s: %v", nritypes.DownwardAPIMountPath, err)
 		return nil, err
 	}
 
@@ -101,7 +101,7 @@ func GetHugepages() (*types.HugepagesResponse, error) {
 				found = true
 			}
 		} else {
-			glog.Infof("  \"%s\" does NOT match any hugepage file names", fileName)
+			logging.Infof("  \"%s\" does NOT match any hugepage file names", fileName)
 		}
 	}
 
@@ -121,7 +121,7 @@ func managerContainerName(response *types.HugepagesResponse,
 		// Trim leading '_'
 		containerName = strings.TrimPrefix(containerName, "_")
 	}
-	glog.Infof("Hugepage file: Using containerName \"%s\"", containerName)
+	logging.Infof("Hugepage file: Using containerName \"%s\"", containerName)
 
 	// Determine if ContainerName already has an entry in response
 	var hugepagesData *types.HugepagesData
@@ -142,14 +142,14 @@ func managerContainerName(response *types.HugepagesResponse,
 	// Retrieve value from file
 	var hugepagesVal int64
 	path := filepath.Join(nritypes.DownwardAPIMountPath, fileName)
-	glog.Infof("GetHugepages: Open %s", path)
+	logging.Infof("GetHugepages: Open %s", path)
 	hugepagesStr, err := ioutil.ReadFile(path)
 	if err != nil {
-		glog.Infof("Error getting %s info: %v", path, err)
+		logging.Infof("Error getting %s info: %v", path, err)
 	} else {
 		hugepagesVal, err = strconv.ParseInt(string(bytes.TrimSpace(hugepagesStr)), 10, 64)
 		if err != nil {
-			glog.Infof("Error converting limit \"%s\": %v", hugepagesStr, err)
+			logging.Infof("Error converting limit \"%s\": %v", hugepagesStr, err)
 		}
 	}
 

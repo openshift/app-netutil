@@ -127,10 +127,10 @@ import "C"
 import "unsafe"
 
 import (
-	"github.com/golang/glog"
 	nettypes "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 
 	netlib "github.com/openshift/app-netutil/lib/v1alpha"
+	"github.com/openshift/app-netutil/pkg/logging"
 	"github.com/openshift/app-netutil/pkg/types"
 )
 
@@ -159,7 +159,7 @@ func GetCPUInfo(c_cpuResp *C.struct_CPUResponse) int64 {
 		c_cpuResp.CPUSet = C.CString(cpuRsp.CPUSet)
 		return NETUTIL_ERRNO_SUCCESS
 	}
-	glog.Errorf("netlib.GetCPUInfo() err: %+v", err)
+	_ = logging.Errorf("netlib.GetCPUInfo() err: %+v", err)
 	return NETUTIL_ERRNO_FAIL
 }
 
@@ -197,7 +197,7 @@ func GetHugepages(c_hugepagesResp *C.struct_HugepagesResponse) int64 {
 				j++
 			} else {
 
-				glog.Errorf("HugepagesResponse struct not sized properly."+
+				_ = logging.Errorf("HugepagesResponse struct not sized properly."+
 					"At index %d.", i)
 
 				return NETUTIL_ERRNO_SIZE_ERROR
@@ -205,7 +205,7 @@ func GetHugepages(c_hugepagesResp *C.struct_HugepagesResponse) int64 {
 		}
 		return NETUTIL_ERRNO_SUCCESS
 	}
-	glog.Errorf("netlib.GetHugepages() err: %+v", err)
+	_ = logging.Errorf("netlib.GetHugepages() err: %+v", err)
 	return NETUTIL_ERRNO_FAIL
 }
 
@@ -257,7 +257,7 @@ func GetInterfaces(c_ifaceRsp *C.struct_InterfaceResponse) int64 {
 					if k < netutil_num_ips {
 						c_ifaceResp_pIface[j].NetworkStatus.IPs[k] = C.CString(ip)
 					} else {
-						glog.Errorf("NetworkStatus.IPs array not sized properly."+
+						_ = logging.Errorf("NetworkStatus.IPs array not sized properly."+
 							"At Interface %d, IP index %d.", i, k)
 						return NETUTIL_ERRNO_SIZE_ERROR
 					}
@@ -277,7 +277,7 @@ func GetInterfaces(c_ifaceRsp *C.struct_InterfaceResponse) int64 {
 					if k < C.NETUTIL_NUM_DNS_NAMESERVERS {
 						c_ifaceResp_pIface[j].NetworkStatus.DNS.Nameservers[k] = C.CString(nameserver)
 					} else {
-						glog.Errorf("NetworkStatus.DNS.Nameservers array not sized properly."+
+						_ = logging.Errorf("NetworkStatus.DNS.Nameservers array not sized properly."+
 							"At Interface %d, index %d.", i, k)
 						return NETUTIL_ERRNO_SIZE_ERROR
 					}
@@ -289,7 +289,7 @@ func GetInterfaces(c_ifaceRsp *C.struct_InterfaceResponse) int64 {
 					if k < C.NETUTIL_NUM_DNS_SEARCH {
 						c_ifaceResp_pIface[j].NetworkStatus.DNS.Search[k] = C.CString(search)
 					} else {
-						glog.Errorf("NetworkStatus.DNS.Search array not sized properly."+
+						_ = logging.Errorf("NetworkStatus.DNS.Search array not sized properly."+
 							"At Interface %d, index %d.", i, k)
 						return NETUTIL_ERRNO_SIZE_ERROR
 					}
@@ -298,7 +298,7 @@ func GetInterfaces(c_ifaceRsp *C.struct_InterfaceResponse) int64 {
 					if k < C.NETUTIL_NUM_DNS_OPTIONS {
 						c_ifaceResp_pIface[j].NetworkStatus.DNS.Options[k] = C.CString(option)
 					} else {
-						glog.Errorf("NetworkStatus.DNS.Options array not sized properly."+
+						_ = logging.Errorf("NetworkStatus.DNS.Options array not sized properly."+
 							"At Interface %d, index %d.", i, k)
 						return NETUTIL_ERRNO_SIZE_ERROR
 					}
@@ -329,7 +329,7 @@ func GetInterfaces(c_ifaceRsp *C.struct_InterfaceResponse) int64 {
 									C.CString(iface.NetworkStatus.DeviceInfo.Pci.PfPciAddress)
 							}
 						} else {
-							glog.Errorf("Error: type set to pci, but no associated DeviceInfo data")
+							_ = logging.Errorf("Error: type set to pci, but no associated DeviceInfo data")
 						}
 					case NETUTIL_INTERFACE_TYPE_VHOST:
 						c_ifaceResp_pIface[j].NetworkStatus.DeviceInfo.Type = C.NETUTIL_TYPE_VHOST
@@ -344,7 +344,7 @@ func GetInterfaces(c_ifaceRsp *C.struct_InterfaceResponse) int64 {
 									C.CString(iface.NetworkStatus.DeviceInfo.VhostUser.Path)
 							}
 						} else {
-							glog.Errorf("Error: type set to vHost, but no associated DeviceInfo data")
+							_ = logging.Errorf("Error: type set to vHost, but no associated DeviceInfo data")
 						}
 					case NETUTIL_INTERFACE_TYPE_MEMIF:
 						c_ifaceResp_pIface[j].NetworkStatus.DeviceInfo.Type = C.NETUTIL_TYPE_MEMIF
@@ -366,7 +366,7 @@ func GetInterfaces(c_ifaceRsp *C.struct_InterfaceResponse) int64 {
 									C.CString(iface.NetworkStatus.DeviceInfo.Memif.Path)
 							}
 						} else {
-							glog.Errorf("Error: type set to memif, but no associated DeviceInfo data")
+							_ = logging.Errorf("Error: type set to memif, but no associated DeviceInfo data")
 						}
 					case NETUTIL_INTERFACE_TYPE_VDPA:
 						c_ifaceResp_pIface[j].NetworkStatus.DeviceInfo.Type = C.NETUTIL_TYPE_VDPA
@@ -392,7 +392,7 @@ func GetInterfaces(c_ifaceRsp *C.struct_InterfaceResponse) int64 {
 									C.CString(iface.NetworkStatus.DeviceInfo.Vdpa.PfPciAddress)
 							}
 						} else {
-							glog.Errorf("Error: type set to vDPA, but no associated DeviceInfo data")
+							_ = logging.Errorf("Error: type set to vDPA, but no associated DeviceInfo data")
 						}
 					default:
 						c_ifaceResp_pIface[j].DeviceType = C.NETUTIL_TYPE_UNKNOWN
@@ -404,7 +404,7 @@ func GetInterfaces(c_ifaceRsp *C.struct_InterfaceResponse) int64 {
 				j++
 			} else {
 
-				glog.Errorf("InterfaceResponse struct not sized properly."+
+				_ = logging.Errorf("InterfaceResponse struct not sized properly."+
 					"At Interface %d.", i)
 
 				return NETUTIL_ERRNO_SIZE_ERROR
@@ -412,7 +412,7 @@ func GetInterfaces(c_ifaceRsp *C.struct_InterfaceResponse) int64 {
 		}
 		return NETUTIL_ERRNO_SUCCESS
 	}
-	glog.Errorf("netlib.GetInterfaces() err: %+v", err)
+	_ = logging.Errorf("netlib.GetInterfaces() err: %+v", err)
 	return NETUTIL_ERRNO_FAIL
 }
 

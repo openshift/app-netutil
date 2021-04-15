@@ -20,10 +20,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/golang/glog"
 	nritypes "github.com/intel/network-resources-injector/pkg/types"
 	nettypes "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 
+	"github.com/openshift/app-netutil/pkg/logging"
 	"github.com/openshift/app-netutil/pkg/networkstatus"
 	"github.com/openshift/app-netutil/pkg/types"
 	"github.com/openshift/app-netutil/pkg/userspace"
@@ -37,7 +37,7 @@ import (
 // API Functions
 //
 func GetInterfaces() (*types.InterfaceResponse, error) {
-	glog.Infof("GetInterfaces: Version=%s  Git Commit=%s\n", AppNetutilVersion, GitCommit)
+	logging.Infof("GetInterfaces: Version=%s  Git Commit=%s", AppNetutilVersion, GitCommit)
 
 	response := &types.InterfaceResponse{}
 
@@ -45,12 +45,12 @@ func GetInterfaces() (*types.InterfaceResponse, error) {
 	annotationPath := filepath.Join(nritypes.DownwardAPIMountPath, nritypes.AnnotationsPath)
 	if _, err := os.Stat(annotationPath); err != nil {
 		if os.IsNotExist(err) {
-			glog.Infof("GetInterfaces: \"annotations\" file: %v does not exist.", annotationPath)
+			logging.Infof("GetInterfaces: \"annotations\" file: %v does not exist.", annotationPath)
 		}
 	} else {
 		file, err := os.Open(annotationPath)
 		if err != nil {
-			glog.Errorf("GetInterfaces: Error opening \"annotations\" file: %v ", err)
+			_ = logging.Errorf("GetInterfaces: Error opening \"annotations\" file: %v ", err)
 			return response, err
 		}
 		defer file.Close()
@@ -70,13 +70,13 @@ func GetInterfaces() (*types.InterfaceResponse, error) {
 
 			// Loop through each annotation
 			for _, s := range status {
-				glog.Infof("  s-%v", s)
+				logging.Infof("  s-%v", s)
 				parts := strings.Split(string(s), "=")
 
 				// DEBUG
-				glog.Infof("  PartsLen-%d", len(parts))
+				logging.Infof("  PartsLen-%d", len(parts))
 				if len(parts) >= 1 {
-					glog.Infof("  parts[0]-%s", parts[0])
+					logging.Infof("  parts[0]-%s", parts[0])
 				}
 
 				if len(parts) == 2 {
@@ -114,16 +114,16 @@ func GetInterfaces() (*types.InterfaceResponse, error) {
 	// PCI Address for SR-IOV Interfaces are found in
 	// Environmental Variables. Search through them to
 	// see if any can be found.
-	glog.Infof("PROCESS ENV:")
+	logging.Infof("PROCESS ENV:")
 	envResponse, err := getEnv()
 	if err != nil {
-		glog.Errorf("GetInterfaces: Error calling getEnv: %v", err)
+		_ = logging.Errorf("GetInterfaces: Error calling getEnv: %v", err)
 		return nil, err
 	}
 	pciAddressSlice := []string{}
 	for k, v := range envResponse.Envs {
 		if strings.HasPrefix(k, "PCIDEVICE") {
-			glog.Infof("  k:%v v:%v", k, v)
+			logging.Infof("  k:%v v:%v", k, v)
 			valueParts := strings.Split(string(v), ",")
 			for _, id := range valueParts {
 				found := false
@@ -148,9 +148,9 @@ func GetInterfaces() (*types.InterfaceResponse, error) {
 					}
 				}
 				if found {
-					glog.Infof("     Skip Adding ID:%v", id)
+					logging.Infof("     Skip Adding ID:%v", id)
 				} else {
-					glog.Infof("     Adding ID:%v", id)
+					logging.Infof("     Adding ID:%v", id)
 					pciAddressSlice = append(pciAddressSlice, id)
 				}
 			}
@@ -174,7 +174,7 @@ func GetInterfaces() (*types.InterfaceResponse, error) {
 			if ifaceData.NetworkStatus.Default && unknownCnt > len(pciAddressSlice) {
 				ifaceData.DeviceType = types.INTERFACE_TYPE_HOST
 				unknownCnt--
-				glog.Infof("%s is the \"default\" interface, mark as \"%s\"",
+				logging.Infof("%s is the \"default\" interface, mark as \"%s\"",
 					ifaceData.NetworkStatus.Interface, ifaceData.DeviceType)
 			} else if pciIndex < len(pciAddressSlice) {
 				// Since type was "unknown" and there are PCI interfaces not yet
@@ -190,10 +190,10 @@ func GetInterfaces() (*types.InterfaceResponse, error) {
 						},
 					}
 					pciIndex++
-					glog.Infof("%s was \"unknown\", mark as \"%s\"",
+					logging.Infof("%s was \"unknown\", mark as \"%s\"",
 						ifaceData.NetworkStatus.Interface, ifaceData.DeviceType)
 				} else {
-					glog.Warningf("%s was \"unknown\", but DeviceInfo exists with type \"%s\"",
+					_ = logging.Warningf("%s was \"unknown\", but DeviceInfo exists with type \"%s\"",
 						ifaceData.NetworkStatus.Interface, ifaceData.NetworkStatus.DeviceInfo.Type)
 				}
 			} else {
@@ -201,7 +201,7 @@ func GetInterfaces() (*types.InterfaceResponse, error) {
 				// type is unknown, mark this interface as "host".
 				ifaceData.DeviceType = types.INTERFACE_TYPE_HOST
 				unknownCnt--
-				glog.Infof("%s was \"unknown\", mark as \"%s\"",
+				logging.Infof("%s was \"unknown\", mark as \"%s\"",
 					ifaceData.NetworkStatus.Interface, ifaceData.DeviceType)
 			}
 		}
@@ -225,14 +225,14 @@ func GetInterfaces() (*types.InterfaceResponse, error) {
 			}
 			response.Interface = append(response.Interface, ifaceData)
 
-			glog.Infof("Adding %s as new interface because no other matches, type \"%s\"",
+			logging.Infof("Adding %s as new interface because no other matches, type \"%s\"",
 				pciAddr, ifaceData.DeviceType)
 		}
 	}
 
-	glog.Infof("RESPONSE:")
+	logging.Infof("RESPONSE:")
 	for _, ifaceData := range response.Interface {
-		glog.Infof("%v", ifaceData)
+		logging.Infof("%v", ifaceData)
 	}
 
 	return response, err

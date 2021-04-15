@@ -12,10 +12,9 @@ package networkstatus
 import (
 	"encoding/json"
 
-	"github.com/golang/glog"
-
 	nettypes "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 
+	"github.com/openshift/app-netutil/pkg/logging"
 	"github.com/openshift/app-netutil/pkg/types"
 )
 
@@ -31,7 +30,7 @@ func ParseAnnotations(annotKey string, annotValue string, netStatData *NetStatus
 	// Parse the NetworkStatus annotation
 	if annotKey == annotKeyNetworkStatus {
 		if err := json.Unmarshal([]byte(annotValue), &netStatData.networkStatusSlice); err != nil {
-			glog.Errorf("Error unmarshal \"%s\": %v", annotKeyNetworkStatus, err)
+			_ = logging.Errorf("Error unmarshal \"%s\": %v", annotKeyNetworkStatus, err)
 		}
 	}
 }
@@ -39,10 +38,10 @@ func ParseAnnotations(annotKey string, annotValue string, netStatData *NetStatus
 func AppendInterfaceData(netStatData *NetStatusData, ifaceRsp *types.InterfaceResponse) {
 	var ifaceData *types.InterfaceData
 
-	glog.Infof("PRINT EACH NetworkStatus - len=%d", len(netStatData.networkStatusSlice))
+	logging.Infof("PRINT EACH NetworkStatus - len=%d", len(netStatData.networkStatusSlice))
 	for _, status := range netStatData.networkStatusSlice {
-		glog.Infof("  status:")
-		glog.Infof("%v", status)
+		logging.Infof("  status:")
+		logging.Infof("%v", status)
 
 		// For efficiency, assume no interfaces have been added to list,
 		// so don't search existing list to make sure this interfaces has

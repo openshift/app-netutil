@@ -9,8 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/golang/glog"
-
+	"github.com/openshift/app-netutil/pkg/logging"
 	"github.com/openshift/app-netutil/pkg/types"
 )
 
@@ -23,13 +22,13 @@ type EnvResponse struct {
 }
 
 func GetCPUInfo() (*types.CPUResponse, error) {
-	glog.Infof("GetCPUInfo: Version=%s  Git Commit=%s\n", AppNetutilVersion, GitCommit)
+	logging.Infof("GetCPUInfo: Version=%s  Git Commit=%s", AppNetutilVersion, GitCommit)
 
 	path := filepath.Join("/proc", strconv.Itoa(os.Getpid()), "root", cpusetPath)
-	glog.Infof("getting cpuset from path: %s", path)
+	logging.Infof("getting cpuset from path: %s", path)
 	cpus, err := ioutil.ReadFile(path)
 	if err != nil {
-		glog.Errorf("Error getting cpuset info: %v", err)
+		_ = logging.Errorf("Error getting cpuset info: %v", err)
 		return nil, err
 	}
 	return &types.CPUResponse{CPUSet: string(bytes.TrimSpace(cpus))}, nil
@@ -37,10 +36,10 @@ func GetCPUInfo() (*types.CPUResponse, error) {
 
 func getEnv() (*EnvResponse, error) {
 	path := filepath.Join("/proc", strconv.Itoa(os.Getpid()), "environ")
-	glog.Infof("getting environment variables from path: %s", path)
+	logging.Infof("getting environment variables from path: %s", path)
 	file, err := os.Open(path)
 	if err != nil {
-		glog.Errorf("Error openning proc environ file: %v", err)
+		_ = logging.Errorf("Error opening proc environ file: %v", err)
 		return nil, err
 	}
 	defer file.Close()
