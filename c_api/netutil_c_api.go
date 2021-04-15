@@ -4,7 +4,7 @@ package main
 #include <stdint.h>
 #include <stdbool.h>
 
-// Mapped from app-netutil.lib/v1alpha/types.go
+// Mapped from app-netutil/lib/v1alpha/types.go
 
 struct CPUResponse {
 	char*    CPUSet;
@@ -120,6 +120,11 @@ struct InterfaceResponse {
 	int                   numIfaceAllocated;
 	int                   numIfacePopulated;
 	struct InterfaceData *pIface;
+};
+
+
+struct AppNetutilConfig {
+	int dummyVar;
 };
 
 */
@@ -414,6 +419,11 @@ func GetInterfaces(c_ifaceRsp *C.struct_InterfaceResponse) int64 {
 	}
 	_ = logging.Errorf("netlib.GetInterfaces() err: %+v", err)
 	return NETUTIL_ERRNO_FAIL
+}
+
+//export SetConfig
+func SetConfig(c_config *C.struct_AppNetutilConfig) int64 {
+	return NETUTIL_ERRNO_SUCCESS
 }
 
 func main() {}

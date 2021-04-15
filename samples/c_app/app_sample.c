@@ -296,12 +296,26 @@ static void freeHugepages(struct HugepagesResponse *pHugepagesRsp) {
 }
 
 int main() {
+	struct AppNetutilConfig config;
 	struct CPUResponse cpuRsp;
 	struct HugepagesResponse hugepagesRsp;
 	struct InterfaceResponse ifaceRsp;
 	int err;
 
 	printf("Starting sample C application.\n");
+
+	//
+	// Set APP NetUtils Settings
+	//
+	printf("Call NetUtil SetConfig():\n");
+	memset(&config, 0, sizeof(config));
+	err = SetConfig(&config);
+	if (err) {
+		printf("Couldn't set Log Settings, err code: %d\n", err);
+	} else {
+		printf("  Done.\n");		
+	}
+
 
 	//
 	// Example of a C call to GO that returns a string.
