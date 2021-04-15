@@ -122,9 +122,21 @@ struct InterfaceResponse {
 	struct InterfaceData *pIface;
 };
 
+// Mapped from app-netutil/pkg/logging/logging.go
+#define LOG_LEVEL_ERROR    0
+#define LOG_LEVEL_WARNING  1
+#define LOG_LEVEL_INFO     2
+#define LOG_LEVEL_DEBUG    3
+#define LOG_LEVEL_MAX      4
+
+struct LoggingData {
+	uint32_t  stderr;
+	uint32_t  level;
+	char*     filename;
+};
 
 struct AppNetutilConfig {
-	int dummyVar;
+	struct LoggingData log;
 };
 
 */
@@ -423,7 +435,31 @@ func GetInterfaces(c_ifaceRsp *C.struct_InterfaceResponse) int64 {
 
 //export SetConfig
 func SetConfig(c_config *C.struct_AppNetutilConfig) int64 {
+	err := setLogSettings(&c_config.log)
+
+	return err
+}
+
+func setLogSettings(c_log *C.struct_LoggingData) int64 {
+
+	if c_log.level < C.LOG_LEVEL_MAX {
+		logging.SetLogLevel(logging.Level.String(logging.Level(c_log.level)))
+	}
+
+	if c_log.stderr <= 1 {
+		stderr := true
+		if c_log.stderr == 0 {
+			stderr = false
+		}
+		logging.SetLogStderr(stderr)
+	}
+
+	if c_log.filename != nil {
+		logging.SetLogFile(C.GoString(c_log.filename))
+	}
+
 	return NETUTIL_ERRNO_SUCCESS
 }
+
 
 func main() {}

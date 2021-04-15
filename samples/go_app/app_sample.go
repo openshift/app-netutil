@@ -12,7 +12,9 @@ import (
 
 func main() {
 	logging.SetLogLevel("info")
-	logging.Infof("starting sample application")
+	logging.SetLogFile("/tmp/appnetutil.log")
+
+	logging.Infof("Starting sample GO application")
 
 	for {
 		// Test GetCPUInfo()

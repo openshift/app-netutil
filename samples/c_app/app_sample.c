@@ -309,6 +309,12 @@ int main() {
 	//
 	printf("Call NetUtil SetConfig():\n");
 	memset(&config, 0, sizeof(config));
+
+	// Update Log Settings
+	config.log.level = LOG_LEVEL_INFO;
+	config.log.stderr = true;
+	config.log.filename = "/tmp/appnetutil.log";
+
 	err = SetConfig(&config);
 	if (err) {
 		printf("Couldn't set Log Settings, err code: %d\n", err);
