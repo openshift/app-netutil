@@ -24,6 +24,8 @@ const (
 // API Functions
 //
 func GetHugepages() (*types.HugepagesResponse, error) {
+	glog.Infof("GetHugepages: Version=%s  Git Commit=%s\n", AppNetutilVersion, GitCommit)
+
 	response := &types.HugepagesResponse{}
 
 	// Try to retrieve this container's name from the environment variable

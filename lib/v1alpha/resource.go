@@ -23,6 +23,8 @@ type EnvResponse struct {
 }
 
 func GetCPUInfo() (*types.CPUResponse, error) {
+	glog.Infof("GetCPUInfo: Version=%s  Git Commit=%s\n", AppNetutilVersion, GitCommit)
+
 	path := filepath.Join("/proc", strconv.Itoa(os.Getpid()), "root", cpusetPath)
 	glog.Infof("getting cpuset from path: %s", path)
 	cpus, err := ioutil.ReadFile(path)

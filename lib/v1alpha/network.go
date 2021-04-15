@@ -37,7 +37,7 @@ import (
 // API Functions
 //
 func GetInterfaces() (*types.InterfaceResponse, error) {
-	glog.Infof("GetInterfaces: ENTER")
+	glog.Infof("GetInterfaces: Version=%s  Git Commit=%s\n", AppNetutilVersion, GitCommit)
 
 	response := &types.InterfaceResponse{}
 
