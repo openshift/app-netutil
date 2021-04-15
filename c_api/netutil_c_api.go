@@ -135,8 +135,13 @@ struct LoggingData {
 	char*     filename;
 };
 
+struct DownwardAPIData {
+	char* baseDir;
+};
+
 struct AppNetutilConfig {
-	struct LoggingData log;
+	struct DownwardAPIData downwardAPI;
+	struct LoggingData     log;
 };
 
 */
@@ -435,12 +440,25 @@ func GetInterfaces(c_ifaceRsp *C.struct_InterfaceResponse) int64 {
 
 //export SetConfig
 func SetConfig(c_config *C.struct_AppNetutilConfig) int64 {
-	err := setLogSettings(&c_config.log)
+	err := setDownwardAPI(&c_config.downwardAPI)
+
+	if err == NETUTIL_ERRNO_SUCCESS {
+		err = setLog(&c_config.log)
+	}
 
 	return err
 }
 
-func setLogSettings(c_log *C.struct_LoggingData) int64 {
+func setDownwardAPI(c_downwardAPI *C.struct_DownwardAPIData) int64 {
+
+	if c_downwardAPI.baseDir != nil {
+		netlib.SetDownwardAPIMountPath(C.GoString(c_downwardAPI.baseDir))
+	}
+
+	return NETUTIL_ERRNO_SUCCESS
+}
+
+func setLog(c_log *C.struct_LoggingData) int64 {
 
 	if c_log.level < C.LOG_LEVEL_MAX {
 		logging.SetLogLevel(logging.Level.String(logging.Level(c_log.level)))
@@ -460,6 +478,5 @@ func setLogSettings(c_log *C.struct_LoggingData) int64 {
 
 	return NETUTIL_ERRNO_SUCCESS
 }
-
 
 func main() {}

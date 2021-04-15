@@ -42,7 +42,7 @@ func GetInterfaces() (*types.InterfaceResponse, error) {
 	response := &types.InterfaceResponse{}
 
 	// Open Annotations File
-	annotationPath := filepath.Join(nritypes.DownwardAPIMountPath, nritypes.AnnotationsPath)
+	annotationPath := filepath.Join(GetDownwardAPIMountPath(), nritypes.AnnotationsPath)
 	if _, err := os.Stat(annotationPath); err != nil {
 		if os.IsNotExist(err) {
 			logging.Infof("GetInterfaces: \"annotations\" file: %v does not exist.", annotationPath)

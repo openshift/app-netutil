@@ -310,6 +310,9 @@ int main() {
 	printf("Call NetUtil SetConfig():\n");
 	memset(&config, 0, sizeof(config));
 
+	// Update Downward API Settings
+	//config.downwardAPI.baseDir = "/etc/podinfo";
+
 	// Update Log Settings
 	config.log.level = LOG_LEVEL_INFO;
 	config.log.stderr = true;

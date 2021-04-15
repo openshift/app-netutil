@@ -43,16 +43,16 @@ func GetHugepages() (*types.HugepagesResponse, error) {
 
 	// Loop through all the files in the Downward API directory
 	// and match the files with the "hugepages_" prefix.
-	directory, err := os.Open(nritypes.DownwardAPIMountPath)
+	directory, err := os.Open(GetDownwardAPIMountPath())
 	if err != nil {
-		logging.Infof("Error opening directory %s: %v", nritypes.DownwardAPIMountPath, err)
+		logging.Infof("Error opening directory %s: %v", GetDownwardAPIMountPath(), err)
 		return nil, err
 	}
 	defer directory.Close()
 
 	fileList, err := directory.Readdirnames(0)
 	if err != nil {
-		logging.Infof("Error reading directory names in %s: %v", nritypes.DownwardAPIMountPath, err)
+		logging.Infof("Error reading directory names in %s: %v", GetDownwardAPIMountPath(), err)
 		return nil, err
 	}
 
@@ -141,7 +141,7 @@ func managerContainerName(response *types.HugepagesResponse,
 
 	// Retrieve value from file
 	var hugepagesVal int64
-	path := filepath.Join(nritypes.DownwardAPIMountPath, fileName)
+	path := filepath.Join(GetDownwardAPIMountPath(), fileName)
 	logging.Infof("GetHugepages: Open %s", path)
 	hugepagesStr, err := ioutil.ReadFile(path)
 	if err != nil {

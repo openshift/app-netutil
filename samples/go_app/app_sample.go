@@ -11,6 +11,10 @@ import (
 )
 
 func main() {
+	// Update Downward API Settings
+	//netlib.SetDownwardAPIMountPath("/etc/podinfo")
+
+	// Update Log Settings
 	logging.SetLogLevel("info")
 	logging.SetLogFile("/tmp/appnetutil.log")
 
