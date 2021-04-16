@@ -17,15 +17,6 @@ RUN yum install -y wget numactl-devel git golang make; yum clean all
 #RUN yum install -y pciutils iproute; yum clean all
 
 #
-# Download and Build APP-NetUtil
-#
-WORKDIR /root/go/src/
-RUN go get github.com/openshift/app-netutil 2>&1 > /tmp/UserspaceDockerBuild.log || echo "Can ignore no GO files."
-WORKDIR /root/go/src/github.com/openshift/app-netutil
-RUN make c_sample
-RUN cp bin/libnetutil_api.so /lib64/libnetutil_api.so; cp bin/libnetutil_api.h /usr/include/libnetutil_api.h
-
-#
 # Download and Build DPDK
 #
 ENV DPDK_VER 19.08
@@ -52,20 +43,29 @@ RUN sed -i -e 's/LIBRTE_PMD_KNI=y/LIBRTE_PMD_KNI=n/' config/common_linux
 #RUN sed -i -e 's/LIBRTE_PMD_KNI=y/LIBRTE_PMD_KNI=n/' config/common_linuxapp
 
 # Add vhost patch
-COPY ./vhost_substitute.sh ./vhost_substitute.sh
+COPY ./samples/dpdk_app/dpdk-app-centos/vhost_substitute.sh ./vhost_substitute.sh
 RUN ./vhost_substitute.sh
 
 RUN make install T=${RTE_TARGET} DESTDIR=${RTE_SDK}
 
 #
+# Download and Build APP-NetUtil
+#
+ADD . /root/go/src/github.com/openshift/app-netutil
+WORKDIR /root/go/src/github.com/openshift/app-netutil
+RUN make c_sample
+RUN cp bin/libnetutil_api.so /lib64/libnetutil_api.so; cp bin/libnetutil_api.h /usr/include/libnetutil_api.h
+RUN make go_sample
+
+#
 # Build TestPmd
 #
 WORKDIR ${DPDK_DIR}/app/test-pmd
-COPY ./dpdk-args.c ./dpdk-args.c
-COPY ./dpdk-args.h ./dpdk-args.h
-COPY ./testpmd_eal_init.txt ./testpmd_eal_init.txt
-COPY ./testpmd_launch_args_parse.txt ./testpmd_launch_args_parse.txt
-COPY ./testpmd_substitute.sh ./testpmd_substitute.sh
+COPY ./samples/dpdk_app/dpdk-app-centos/dpdk-args.c ./dpdk-args.c
+COPY ./samples/dpdk_app/dpdk-app-centos/dpdk-args.h ./dpdk-args.h
+COPY ./samples/dpdk_app/dpdk-app-centos/testpmd_eal_init.txt ./testpmd_eal_init.txt
+COPY ./samples/dpdk_app/dpdk-app-centos/testpmd_launch_args_parse.txt ./testpmd_launch_args_parse.txt
+COPY ./samples/dpdk_app/dpdk-app-centos/testpmd_substitute.sh ./testpmd_substitute.sh
 RUN ./testpmd_substitute.sh
 RUN make
 RUN cp testpmd /usr/bin/testpmd
@@ -74,11 +74,11 @@ RUN cp testpmd /usr/bin/testpmd
 # Build l2fwd
 #
 WORKDIR ${DPDK_DIR}/examples/l2fwd
-COPY ./dpdk-args.c ./dpdk-args.c
-COPY ./dpdk-args.h ./dpdk-args.h
-COPY ./l2fwd_eal_init.txt ./l2fwd_eal_init.txt
-COPY ./l2fwd_parse_args.txt ./l2fwd_parse_args.txt
-COPY ./l2fwd_substitute.sh ./l2fwd_substitute.sh
+COPY ./samples/dpdk_app/dpdk-app-centos/dpdk-args.c ./dpdk-args.c
+COPY ./samples/dpdk_app/dpdk-app-centos/dpdk-args.h ./dpdk-args.h
+COPY ./samples/dpdk_app/dpdk-app-centos/l2fwd_eal_init.txt ./l2fwd_eal_init.txt
+COPY ./samples/dpdk_app/dpdk-app-centos/l2fwd_parse_args.txt ./l2fwd_parse_args.txt
+COPY ./samples/dpdk_app/dpdk-app-centos/l2fwd_substitute.sh ./l2fwd_substitute.sh
 RUN ./l2fwd_substitute.sh
 RUN make
 RUN cp build/l2fwd /usr/bin/l2fwd
@@ -87,17 +87,18 @@ RUN cp build/l2fwd /usr/bin/l2fwd
 # Build l3fwd
 #
 WORKDIR ${DPDK_DIR}/examples/l3fwd
-COPY ./dpdk-args.c ./dpdk-args.c
-COPY ./dpdk-args.h ./dpdk-args.h
-COPY ./l3fwd_eal_init.txt ./l3fwd_eal_init.txt
-COPY ./l3fwd_parse_args.txt ./l3fwd_parse_args.txt
-COPY ./l3fwd_substitute.sh ./l3fwd_substitute.sh
+COPY ./samples/dpdk_app/dpdk-app-centos/dpdk-args.c ./dpdk-args.c
+COPY ./samples/dpdk_app/dpdk-app-centos/dpdk-args.h ./dpdk-args.h
+COPY ./samples/dpdk_app/dpdk-app-centos/l3fwd_eal_init.txt ./l3fwd_eal_init.txt
+COPY ./samples/dpdk_app/dpdk-app-centos/l3fwd_parse_args.txt ./l3fwd_parse_args.txt
+COPY ./samples/dpdk_app/dpdk-app-centos/l3fwd_substitute.sh ./l3fwd_substitute.sh
 RUN ./l3fwd_substitute.sh
 RUN make
 RUN cp build/l3fwd /usr/bin/l3fwd
 
 # Copy default APP
 RUN cp build/l3fwd /usr/bin/dpdk-app
+#COPY ./samples/dpdk_app/dpdk-app-centos/dpdk-devbind.py /usr/bin/dpdk-devbind.py
 
 # -------- Import stage.
 # Docker 17.05 or higher
@@ -109,8 +110,16 @@ COPY --from=0 /usr/bin/l3fwd /usr/bin/l3fwd
 COPY --from=0 /usr/bin/testpmd /usr/bin/testpmd
 COPY --from=0 /lib64/libnetutil_api.so /lib64/libnetutil_api.so
 COPY --from=0 /usr/lib64/libnuma.so.1 /usr/lib64/libnuma.so.1
+COPY --from=0 /root/go/src/github.com/openshift/app-netutil/bin/c_sample /usr/bin/c_sample
+COPY --from=0 /root/go/src/github.com/openshift/app-netutil/bin/go_app /usr/bin/go_app
+#COPY --from=0 /usr/bin/dpdk-devbind.py /usr/bin/dpdk-devbind.py
 # END
 
-COPY ./docker-entrypoint.sh /
+# Debug Tools (if needed):
+RUN yum install -y pciutils iproute ethtool lshw; yum clean all
+
+RUN yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm; yum install -y jq; yum clean all
+
+COPY ./samples/dpdk_app/dpdk-app-centos/docker-entrypoint.sh /
 ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["dpdk-app"]
