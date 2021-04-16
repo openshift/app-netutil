@@ -10,7 +10,8 @@ spec:
     image: dpdk-app-centos:latest
     imagePullPolicy: Never
     securityContext:
-      privileged: true
+      capabilities:
+        add: ["IPC_LOCK"]
     volumeMounts:
     - mountPath: /etc/podnetinfo
       name: podnetinfo
