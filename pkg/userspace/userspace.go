@@ -12,10 +12,11 @@ package userplugin
 import (
 	"encoding/json"
 
-	"github.com/golang/glog"
 	"github.com/intel/userspace-cni-network-plugin/pkg/annotations"
 	usrsptypes "github.com/intel/userspace-cni-network-plugin/pkg/types"
 	nettypes "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
+
+	"github.com/openshift/app-netutil/pkg/logging"
 	"github.com/openshift/app-netutil/pkg/types"
 )
 
@@ -33,7 +34,7 @@ func ParseAnnotations(annotKey string, annotValue string, usrspData *UserspacePl
 	// Parse the Configuration Data added by Userspace CNI
 	if annotKey == annotations.AnnotKeyUsrspConfigData {
 		if err := json.Unmarshal([]byte(annotValue), &usrspData.configDataSlice); err != nil {
-			glog.Errorf("Error unmarshal \"%s\": %v", annotations.AnnotKeyUsrspConfigData, err)
+			_ = logging.Errorf("Error unmarshal \"%s\": %v", annotations.AnnotKeyUsrspConfigData, err)
 		}
 	}
 
@@ -46,31 +47,31 @@ func ParseAnnotations(annotKey string, annotValue string, usrspData *UserspacePl
 func AppendInterfaceData(usrspData *UserspacePlugin, ifaceRsp *types.InterfaceResponse) {
 	var ifaceData *types.InterfaceData
 
-	glog.Infof("PRINT EACH Userspace MappedDir")
-	glog.Infof("  usrspMappedDir:")
-	glog.Infof("%v", usrspData.mappedDir)
+	logging.Infof("PRINT EACH Userspace MappedDir")
+	logging.Infof("  usrspMappedDir:")
+	logging.Infof("%v", usrspData.mappedDir)
 
-	glog.Infof("PRINT EACH Userspace ConfigData")
+	logging.Infof("PRINT EACH Userspace ConfigData")
 	for _, configData := range usrspData.configDataSlice {
 		ifaceData = nil
 		foundMatch := false
 
-		glog.Infof("  configData:")
-		glog.Infof("%v", configData)
+		logging.Infof("  configData:")
+		logging.Infof("%v", configData)
 
 		if usrspData.mappedDir == "" {
-			glog.Warningf("Error: \"%s\" annotation not available but required for Userspace interfaces", annotations.AnnotKeyUsrspMappedDir)
+			_ = logging.Warningf("Error: \"%s\" annotation not available but required for Userspace interfaces", annotations.AnnotKeyUsrspMappedDir)
 		}
 
 		// Loop through existing list and determine is this interface has
 		// been discovered by some other means (like using NetworkStatus annotation)
 		for _, interfaceData := range ifaceRsp.Interface {
-			glog.Infof("TEST: NetworkStatus.Interface=%s configData.IfName=%s", interfaceData.NetworkStatus.Interface, configData.IfName)
+			logging.Infof("TEST: NetworkStatus.Interface=%s configData.IfName=%s", interfaceData.NetworkStatus.Interface, configData.IfName)
 			if interfaceData.NetworkStatus.Interface != "" &&
 				interfaceData.NetworkStatus.Interface == configData.IfName {
 				ifaceData = interfaceData
 				foundMatch = true
-				glog.Infof("  FOUND MATCH")
+				logging.Infof("  FOUND MATCH")
 				break
 			}
 		}
@@ -78,7 +79,7 @@ func AppendInterfaceData(usrspData *UserspacePlugin, ifaceRsp *types.InterfaceRe
 		// If current interface is not already in the list, then
 		// create a new instance and add it to the list.
 		if ifaceData == nil {
-			glog.Infof("  NO MATCH: Create New Instance")
+			logging.Infof("  NO MATCH: Create New Instance")
 
 			ifaceData = &types.InterfaceData{
 				DeviceType: types.INTERFACE_TYPE_UNKNOWN,
@@ -129,7 +130,7 @@ func AppendInterfaceData(usrspData *UserspacePlugin, ifaceRsp *types.InterfaceRe
 					},
 				}
 			} else {
-				glog.Warningf("Invalid type found for interface %s", configData.IfName)
+				_ = logging.Warningf("Invalid type found for interface %s", configData.IfName)
 			}
 
 			if ifaceData.NetworkStatus.DeviceInfo != nil {
@@ -141,9 +142,9 @@ func AppendInterfaceData(usrspData *UserspacePlugin, ifaceRsp *types.InterfaceRe
 		} else {
 			// DeviceInfo found in the NetworkStatus data. Currently
 			// don't try to reconcile data coming from two locations.
-			glog.Warningf("Userspace interface found in NetworkStatus: %s", configData.IfName)
-			glog.Infof("NetworkStatus Data: %v", ifaceData)
-			glog.Infof("Userspace Data: %v", configData)
+			_ = logging.Warningf("Userspace interface found in NetworkStatus: %s", configData.IfName)
+			logging.Infof("NetworkStatus Data: %v", ifaceData)
+			logging.Infof("Userspace Data: %v", configData)
 		}
 	}
 }

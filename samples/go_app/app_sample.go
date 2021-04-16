@@ -1,35 +1,40 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"time"
 
-	"github.com/golang/glog"
 	nettypes "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 
 	netlib "github.com/openshift/app-netutil/lib/v1alpha"
+	"github.com/openshift/app-netutil/pkg/logging"
 )
 
 func main() {
-	flag.Parse()
-	glog.Infof("starting sample application")
+	// Update Downward API Settings
+	//netlib.SetDownwardAPIMountPath("/etc/podinfo")
+
+	// Update Log Settings
+	logging.SetLogLevel("info")
+	logging.SetLogFile("/tmp/appnetutil.log")
+
+	logging.Infof("Starting sample GO application")
 
 	for {
 		// Test GetCPUInfo()
-		glog.Infof("CALL netlib.GetCPUInfo:")
+		logging.Infof("CALL netlib.GetCPUInfo:")
 		cpuResponse, err := netlib.GetCPUInfo()
 		if err != nil {
-			glog.Errorf("Error calling netlib.GetCPUInfo: %v", err)
+			_ = logging.Errorf("Error calling netlib.GetCPUInfo: %v", err)
 			return
 		}
 		fmt.Printf("|CPU      |: %+v\n", cpuResponse.CPUSet)
 
 		// Test GetHugepages()
-		glog.Infof("CALL netlib.GetHugepages:")
+		logging.Infof("CALL netlib.GetHugepages:")
 		hugepagesResponse, err := netlib.GetHugepages()
 		if err != nil {
-			glog.Infof("Error calling netlib.GetHugepages: %v", err)
+			logging.Infof("Error calling netlib.GetHugepages: %v", err)
 		} else {
 			fmt.Printf("|HugePage |: MyContainerName=%+v\n", hugepagesResponse.MyContainerName)
 			if len(hugepagesResponse.Hugepages) != 0 {
@@ -48,10 +53,10 @@ func main() {
 		}
 
 		// Test GetInterfaces()
-		glog.Infof("CALL netlib.GetInterfaces:")
+		logging.Infof("CALL netlib.GetInterfaces:")
 		ifaceResponse, err := netlib.GetInterfaces()
 		if err != nil {
-			glog.Errorf("Error calling netlib.GetInterfaces: %v", err)
+			_ = logging.Errorf("Error calling netlib.GetInterfaces: %v", err)
 			return
 		}
 		fmt.Printf("|Iface    |:\n")
