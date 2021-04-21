@@ -28,7 +28,10 @@ go build \
 
 gcc \
   -I${GOBIN} \
+  -I${GOPATH}/src/${REPO_PATH}/c_api/c_util \
   -L${GOBIN} \
   -Wall \
   -o ${GOBIN}/c_sample \
-  ${GOPATH}/src/${REPO_PATH}/samples/c_app/app_sample.c -lnetutil_api
+  ${GOPATH}/src/${REPO_PATH}/c_api/c_util/c_util.c \
+  ${GOPATH}/src/${REPO_PATH}/samples/c_app/app_sample.c \
+  -lnetutil_api
