@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# SPDX-License-Identifier: Apache-2.0
+# Copyright(c) 2021 Red Hat, Inc.
+
+
 # Add new app-netutil headerfile to the main code so app-netutil
 # can be called to gather parameters.
 #

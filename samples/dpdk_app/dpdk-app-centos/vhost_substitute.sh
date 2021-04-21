@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# SPDX-License-Identifier: Apache-2.0
+# Copyright(c) 2021 Red Hat, Inc.
+
+
 # The first two commands update one of the 'if' checks to remove
 # the check for 'master == VHOST_USER_SET_VRING_CALL'.
 #
