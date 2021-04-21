@@ -4,17 +4,22 @@
 
 - [Network Utility](#network-utility)
 - [APIs](#apis)
-	- [GO APIs](#go-apis)
-	- [C APIs](#c-apis)
-		- [C Sample APP](#c-sample-app)
-		- [DPDK Sample Image](#dpdk-sample-image)
+  - [GO APIs](#go-apis)
+    - [GO Sample APP](#go-sample-app)
+  - [C APIs](#c-apis)
+    - [C Sample APP](#c-sample-app)
+    - [DPDK Sample Image](#dpdk-sample-image)
+  - [Custom Settings](#custom-settings)
+    - [Logging](#logging)
+    - [Downward API](#downward-api)
 - [Quick Start](#quick-start)
-	- [Build GO APP](#build-go-app)
-	- [Build C APP](#build-c-app)
-	- [Create testpod Image](#create-testpod-image)
-	- [Create dpdk-app-centos Image](#create-dpdk-app-centos-image)
+  - [Build GO APP](#build-go-app)
+  - [Build C APP](#build-c-app)
+  - [Create testpod Image](#create-testpod-image)
+  - [Create dpdk-app-centos Image](#create-dpdk-app-centos-image)
 
 ## Network Utility
+
 Network Utility (app-netutil) is a library that provides API methods
 for applications running in a container to query network information
 associated with pod. Network Utility is written in golang and can be
@@ -37,7 +42,8 @@ Additional Information:
 * [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## APIs
-Currently there are three API methods implemented:
+
+There are three API methods to collect system and network information:
 * `GetCPUInfo()`
   * This function determines which CPUs are available to the container
   and returns the list to the caller.
@@ -52,6 +58,8 @@ There is a GO and C version of each of these functions.
 
 ### GO APIs
 
+#### GO Sample APP
+
 There is a GO sample app that provides an example of how to include the
 app-netutil as a library in a GO program and how to use the existing APIs:
 * [go_app](samples/go_app/README.md)
@@ -59,6 +67,7 @@ app-netutil as a library in a GO program and how to use the existing APIs:
 ### C APIs
 
 #### C Sample APP
+
 There is a C sample app that provides an example of how to include the
 app-netutil as a library in a C program and how to use the existing APIs:
 * [c_app](samples/c_app/README.md)
@@ -75,6 +84,7 @@ free strings, even though there were not explicitly malloc'd. The sample C
 code shows examples.
 
 #### DPDK Sample Image
+
 The initial problem `app-netutil` is trying to solve is to collect initial
 configuration data for a DPDK application running in a container. The DPDK
 Library is written in C, so there is a sample Docker Image that leverages
@@ -82,7 +92,95 @@ the C APIs of `app-netutil` to collect the initial configuration data an
 then use it to start DPDK. See:
 * [dpdk_app](samples/dpdk_app/dpdk-app-centos/README.md)
 
+### Custom Settings
+
+app-netutil is a set of library functions that are intended to be pulled
+into a container workload to collect system and network information. In
+order to tailor the implementation to match the workload's needs, there
+are a few settings that can be configured.
+
+For C, there is a single C API method to configure app-netutil configuration
+fields:
+* `SetConfig()`
+  * This function takes an input structure and applies the configured
+  fields. Since this C API is only writing (passing data in), no data is
+  allocated on the GO side. Therefore no special freeing of memory is required
+  other than the C side needs to free any memory it specifically allocates.
+
+Since the base code is written in GO, the GO code can call the configuration
+APIs directly, so there is not one single GO configuration API. 
+
+#### Logging
+
+app-netutil supports four levels of logging:
+* **"error"**
+* **"warning"**
+* **"info"**
+* **"debug"**
+
+The default level is **"warning"**. Other settings that can be configure
+are whether to write to stderr or not (default is **true**), and whether
+or not to write logs to a file (default is not write to a file).
+
+GO Example:
+```
+   import "github.com/openshift/app-netutil/pkg/logging"
+
+   logging.SetLogLevel("info")
+   logging.SetLogStderr(true)
+   logging.SetLogFile("/tmp/appnetutil.log")
+```
+
+C Example: 
+```
+   #include "libnetutil_api.h"
+
+   struct AppNetutilConfig config;
+
+   // Update Log Settings
+   memset(&config, 0, sizeof(config));
+   config.log.level = LOG_LEVEL_INFO;
+   config.log.stderr = true;
+   config.log.filename = "/tmp/appnetutil.log";
+   err = SetConfig(&config);
+```
+
+#### Downward API
+
+The 
+[Kubernetes Downward API](https://kubernetes.io/docs/tasks/inject-data-application/downward-api-volume-expose-pod-information/)
+is leveraged to pass pod annotations and specific Downward API fields
+to a pod. This data is written to files in a directory defined by a
+VolumeMount in the podSpec. By default, app-netutil uses "/etc/podnetinfo",
+which is the directory
+[Network Resources Injector](https://github.com/k8snetworkplumbingwg/network-resources-injector)
+(or
+[SR-IOV DP Admission Controller](https://github.com/openshift/sriov-dp-admission-controller)
+in OpenShift) uses when Downward API fields are injected into a pod.
+app-netutil allows the base directory it should use to look for these
+files to be configured. 
+
+GO Example:
+```
+   import netlib "github.com/openshift/app-netutil/lib/v1alpha"
+
+   netlib.SetDownwardAPIMountPath("/etc/podinfo")
+```
+
+C Example: 
+```
+   #include "libnetutil_api.h"
+
+   struct AppNetutilConfig config;
+
+   // Update Downward API Settings
+   memset(&config, 0, sizeof(config));
+   config.downwardAPI.baseDir = "/etc/podinfo";
+   err = SetConfig(&config);
+```
+
 ## Quick Start
+
 This section provides examples of building the sample applications that use
 the Network Utility Library. This is just quick start guide, more details
 can be found in the links associated with each section.
@@ -173,6 +271,7 @@ For more details, see:
 
 
 ### Create testpod Image
+
 The `testpod` image is a CentOS base image built the `app-netutil`
 library. It simply creates a container that runs the `go_app` sample
 applicatation described above.
@@ -248,6 +347,7 @@ For more details, see:
 * [go_app](samples/go_app/README.md)
 
 ### Create dpdk-app-centos Image
+
 The `dpdk-app-centos` image is a CentOS base image built with DPDK
 and includes the `app-netutil` library. The setup to run the image
 is more complicated and depends on if you are using vhost interfaces
