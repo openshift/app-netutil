@@ -1,6 +1,5 @@
-/* SPDX-License-Identifier: BSD-3-Clause
- * Copyright(c) 2019 Red Hat
- */
+// SPDX-License-Identifier: Apache-2.0
+// Copyright(c) 2021 Red Hat, Inc.
 
 #ifndef __DPDK_ARGS_H__
 #define __DPDK_ARGS_H__

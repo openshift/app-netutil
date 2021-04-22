@@ -63,6 +63,8 @@ RUN make go_sample
 WORKDIR ${DPDK_DIR}/app/test-pmd
 COPY ./samples/dpdk_app/dpdk-app-centos/dpdk-args.c ./dpdk-args.c
 COPY ./samples/dpdk_app/dpdk-app-centos/dpdk-args.h ./dpdk-args.h
+COPY ./c_api/c_util/c_util.c ./c_util.c
+COPY ./c_api/c_util/c_util.h ./c_util.h
 COPY ./samples/dpdk_app/dpdk-app-centos/testpmd_eal_init.txt ./testpmd_eal_init.txt
 COPY ./samples/dpdk_app/dpdk-app-centos/testpmd_launch_args_parse.txt ./testpmd_launch_args_parse.txt
 COPY ./samples/dpdk_app/dpdk-app-centos/testpmd_substitute.sh ./testpmd_substitute.sh
@@ -76,6 +78,8 @@ RUN cp testpmd /usr/bin/testpmd
 WORKDIR ${DPDK_DIR}/examples/l2fwd
 COPY ./samples/dpdk_app/dpdk-app-centos/dpdk-args.c ./dpdk-args.c
 COPY ./samples/dpdk_app/dpdk-app-centos/dpdk-args.h ./dpdk-args.h
+COPY ./c_api/c_util/c_util.c ./c_util.c
+COPY ./c_api/c_util/c_util.h ./c_util.h
 COPY ./samples/dpdk_app/dpdk-app-centos/l2fwd_eal_init.txt ./l2fwd_eal_init.txt
 COPY ./samples/dpdk_app/dpdk-app-centos/l2fwd_parse_args.txt ./l2fwd_parse_args.txt
 COPY ./samples/dpdk_app/dpdk-app-centos/l2fwd_substitute.sh ./l2fwd_substitute.sh
@@ -89,6 +93,8 @@ RUN cp build/l2fwd /usr/bin/l2fwd
 WORKDIR ${DPDK_DIR}/examples/l3fwd
 COPY ./samples/dpdk_app/dpdk-app-centos/dpdk-args.c ./dpdk-args.c
 COPY ./samples/dpdk_app/dpdk-app-centos/dpdk-args.h ./dpdk-args.h
+COPY ./c_api/c_util/c_util.c ./c_util.c
+COPY ./c_api/c_util/c_util.h ./c_util.h
 COPY ./samples/dpdk_app/dpdk-app-centos/l3fwd_eal_init.txt ./l3fwd_eal_init.txt
 COPY ./samples/dpdk_app/dpdk-app-centos/l3fwd_parse_args.txt ./l3fwd_parse_args.txt
 COPY ./samples/dpdk_app/dpdk-app-centos/l3fwd_substitute.sh ./l3fwd_substitute.sh

@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# SPDX-License-Identifier: Apache-2.0
+# Copyright(c) 2021 Red Hat, Inc.
+
+
 # Add new app-netutil headerfile to the main code so app-netutil
 # can be called to gather parameters.
 #
@@ -43,8 +47,8 @@ r testpmd_launch_args_parse.txt
 # Add new app-netutil source file to the Makefile.
 #
 # Search for line with: "SRCS-y += parameters.c".
-# Replace with line:    "SRCS-y += parameters.c dpdk-args.c".
-sed -i -e 's/SRCS-y += parameters.c/SRCS-y += parameters.c dpdk-args.c/' Makefile
+# Replace with line:    "SRCS-y += parameters.c c_util.c dpdk-args.c".
+sed -i -e 's/SRCS-y += parameters.c/SRCS-y += parameters.c c_util.c dpdk-args.c/' Makefile
 
 
 # Add new app-netutil shared library to the Makefile.

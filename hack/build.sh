@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright(c) 2021 Red Hat, Inc.
+
 set -e
 
 ORG_PATH="github.com/openshift"

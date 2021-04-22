@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# SPDX-License-Identifier: Apache-2.0
+# Copyright(c) 2021 Red Hat, Inc.
+
+
 # Add new app-netutil headerfile to the main code so app-netutil
 # can be called to gather parameters.
 #
@@ -50,14 +54,14 @@ r l3fwd_parse_args.txt
 # Add new app-netutil source file to the Makefile.
 #
 # Search for line with: "SRCS-y :=".
-# Append line:          "SRCS-y += dpdk-args.c".
-sed -i -e '/SRCS-y :=/a SRCS-y += dpdk-args.c' Makefile
+# Append line:          "SRCS-y += c_util.c dpdk-args.c".
+sed -i -e '/SRCS-y :=/a SRCS-y += c_util.c dpdk-args.c' Makefile
 
 
 # Add new app-netutil shared library to the Makefile.
 # Contains the C API and GO package which collects the
 # interface data.
 #
-# Search for line with: "SRCS-y += dpdk-args.c".
+# Search for line with: "SRCS-y += c_util.c dpdk-args.c".
 # Append line:          "LDLIBS += -lnetutil_api".
-sed -i -e '/SRCS-y += dpdk-args.c/a LDLIBS += -lnetutil_api' Makefile
+sed -i -e '/SRCS-y += c_util.c dpdk-args.c/a LDLIBS += -lnetutil_api' Makefile

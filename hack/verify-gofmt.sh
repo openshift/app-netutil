@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# SPDX-License-Identifier: Apache-2.0
+# Copyright(c) 2021 Red Hat, Inc.
+
 set -o errexit
 set -o nounset
 set -o pipefail
